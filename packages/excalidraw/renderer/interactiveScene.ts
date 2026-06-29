@@ -26,6 +26,7 @@ import {
   elementCenterPoint,
   getCenterBindingSnapRadius,
   getDiamondBaseCorners,
+  isCenterBinding,
   FOCUS_POINT_SIZE,
   getOmitSidesForEditorInterface,
   getTransformHandles,
@@ -1345,6 +1346,11 @@ const renderFocusPointIndicator = ({
     return;
   }
 
+  // A center binding's focus point is fixed at the element center and is not
+  // draggable, so we render only the dashed connection line — no dot, no hover
+  // highlight — and the endpoint is adjusted via the point on the outline.
+  const isCenter = isCenterBinding(binding);
+
   const linearState = appState.selectedLinearElement;
   const isDragging = !!linearState?.isDragging;
   const pointIndex = type === "start" ? 0 : arrow.points.length - 1;
@@ -1355,6 +1361,7 @@ const renderFocusPointIndicator = ({
   // ----------------------------
 
   if (
+    !isCenter &&
     linearState?.hoveredFocusPointBinding === type &&
     !linearState.draggedFocusPointBinding
   ) {
@@ -1382,13 +1389,15 @@ const renderFocusPointIndicator = ({
 
     renderFocusPointConnectionLine(context, appState, arrowPoint, focusPoint);
 
-    renderFocusPointCicle(
-      context,
-      appState,
-      focusPoint,
-      FOCUS_POINT_SIZE / 1.5,
-      isHovered,
-    );
+    if (!isCenter) {
+      renderFocusPointCicle(
+        context,
+        appState,
+        focusPoint,
+        FOCUS_POINT_SIZE / 1.5,
+        isHovered,
+      );
+    }
   }
 };
 

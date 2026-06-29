@@ -10,6 +10,7 @@ import {
   getBindingGap,
   getGlobalFixedPointForBindableElement,
   isBindingEnabled,
+  isCenterBinding,
   maxBindingDistance_simple,
   unbindBindingElement,
   updateBoundPoint,
@@ -346,8 +347,8 @@ export const handleFocusPointPointerDown = (
   );
   const hitThreshold = (FOCUS_POINT_SIZE * 1.5) / appState.zoom.value;
 
-  // Check start binding focus point
-  if (arrow.startBinding?.elementId) {
+  // Check start binding focus point (center bindings are not draggable)
+  if (arrow.startBinding?.elementId && !isCenterBinding(arrow.startBinding)) {
     const bindableElement = elementsMap.get(arrow.startBinding.elementId);
     if (
       bindableElement &&
@@ -382,7 +383,7 @@ export const handleFocusPointPointerDown = (
   }
 
   // Check end binding focus point (only if start not already hit)
-  if (arrow.endBinding?.elementId) {
+  if (arrow.endBinding?.elementId && !isCenterBinding(arrow.endBinding)) {
     const bindableElement = elementsMap.get(arrow.endBinding.elementId);
     if (
       bindableElement &&
@@ -496,8 +497,8 @@ export const handleFocusPointHover = (
   const pointerPos = pointFrom(scenePointerX, scenePointerY);
   const hitThreshold = (FOCUS_POINT_SIZE * 1.5) / appState.zoom.value;
 
-  // Check start binding focus point
-  if (arrow.startBinding?.elementId) {
+  // Check start binding focus point (center bindings are not draggable)
+  if (arrow.startBinding?.elementId && !isCenterBinding(arrow.startBinding)) {
     const bindableElement = elementsMap.get(arrow.startBinding.elementId);
     if (
       bindableElement &&
@@ -526,7 +527,7 @@ export const handleFocusPointHover = (
   }
 
   // Check end binding focus point (only if start not already hovered)
-  if (arrow.endBinding?.elementId) {
+  if (arrow.endBinding?.elementId && !isCenterBinding(arrow.endBinding)) {
     const bindableElement = elementsMap.get(arrow.endBinding.elementId);
     if (
       bindableElement &&
