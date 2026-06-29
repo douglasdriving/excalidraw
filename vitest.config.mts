@@ -82,6 +82,9 @@ export default defineConfig({
     setupFiles: ["./setupTests.ts"],
     globals: true,
     environment: "jsdom",
+    // `.direnv` holds a nix-direnv cached copy of the repo (flake inputs);
+    // exclude it so test files aren't discovered twice via the Nix store path.
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.direnv/**"],
     // don't list skipped tests in the failure tree — keeps output readable
     hideSkippedTests: true,
     coverage: {
