@@ -826,6 +826,35 @@ describe("binding for simple arrows", () => {
       expect(ids.indexOf(arrow.id)).toBeLessThan(ids.indexOf(rect2.id));
     });
 
+    it("keeps the start center-bound across a multi-step drag", () => {
+      UI.clickTool("rectangle");
+      mouse.downAt(100, 100);
+      mouse.moveTo(300, 300);
+      mouse.up();
+      const rect1 = API.getSelectedElement();
+
+      UI.clickTool("rectangle");
+      mouse.downAt(500, 100);
+      mouse.moveTo(700, 300);
+      mouse.up();
+      const rect2 = API.getSelectedElement();
+
+      // Start at rect1 center, drag out through intermediate points (still over
+      // rect1, then between) to rect2 center — like a real mouse drag.
+      UI.clickTool("arrow");
+      mouse.downAt(200, 200);
+      mouse.moveTo(250, 200);
+      mouse.moveTo(400, 200);
+      mouse.moveTo(600, 200);
+      mouse.up();
+      const arrow = API.getSelectedElement() as ExcalidrawArrowElement;
+
+      expect(arrow.startBinding?.elementId).toBe(rect1.id);
+      expect(arrow.endBinding?.elementId).toBe(rect2.id);
+      expect(arrow.startBinding?.center).toBe(true);
+      expect(arrow.endBinding?.center).toBe(true);
+    });
+
     it("does not snap to center when the endpoint is dropped near the edge", () => {
       UI.clickTool("rectangle");
       mouse.downAt(100, 100);

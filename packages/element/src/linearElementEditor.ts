@@ -45,8 +45,8 @@ import type {
 import type { Bounds } from "@excalidraw/common";
 
 import {
-  calculateFixedPointForNonElbowArrowBinding,
   getBindingStrategyForDraggingBindingElementEndpoints,
+  getNonElbowArrowBinding,
   isBindingEnabled,
   snapToMid,
   updateBoundPoint,
@@ -2278,17 +2278,14 @@ const pointDraggingUpdates = (
   if (start.mode === null) {
     updates.startBinding = null;
   } else if (start.mode) {
-    updates.startBinding = {
-      elementId: start.element.id,
-      mode: start.mode,
-      ...calculateFixedPointForNonElbowArrowBinding(
-        element,
-        start.element,
-        "start",
-        elementsMap,
-        start.focusPoint,
-      ),
-    };
+    updates.startBinding = getNonElbowArrowBinding(
+      element,
+      start.element,
+      "start",
+      start.mode,
+      elementsMap,
+      start.focusPoint,
+    );
 
     if (
       startIsDragged &&
@@ -2317,17 +2314,14 @@ const pointDraggingUpdates = (
   if (end.mode === null) {
     updates.endBinding = null;
   } else if (end.mode) {
-    updates.endBinding = {
-      elementId: end.element.id,
-      mode: end.mode,
-      ...calculateFixedPointForNonElbowArrowBinding(
-        element,
-        end.element,
-        "end",
-        elementsMap,
-        end.focusPoint,
-      ),
-    };
+    updates.endBinding = getNonElbowArrowBinding(
+      element,
+      end.element,
+      "end",
+      end.mode,
+      elementsMap,
+      end.focusPoint,
+    );
 
     if (
       endIsDragged &&

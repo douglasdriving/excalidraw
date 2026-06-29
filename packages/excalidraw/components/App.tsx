@@ -7192,7 +7192,12 @@ class App extends React.Component<AppProps, AppState> {
             }
           : null,
       );
-    } else if (this.state.centerBindingHint) {
+    } else if (
+      this.state.centerBindingHint &&
+      // Don't clear while an existing arrow's endpoint is being dragged onto a
+      // shape — that drag sets the hint from its own handler.
+      !this.state.selectedLinearElement?.isDragging
+    ) {
       this.setCenterBindingHint(null);
     }
 
@@ -9829,6 +9834,25 @@ class App extends React.Component<AppProps, AppState> {
               pointFrom<GlobalPoint>(pointerCoords.x, pointerCoords.y),
               this.scene.getNonDeletedElements(),
               elementsMap,
+            );
+
+            // Show the center-binding hint while dragging an existing arrow's
+            // endpoint onto a shape, mirroring the new-arrow hover behavior.
+            const dragPoint = pointFrom<GlobalPoint>(
+              pointerCoords.x,
+              pointerCoords.y,
+            );
+            this.setCenterBindingHint(
+              hoveredElement
+                ? {
+                    element: hoveredElement,
+                    active: isPointNearElementCenter(
+                      dragPoint,
+                      hoveredElement,
+                      elementsMap,
+                    ),
+                  }
+                : null,
             );
 
             if (getFeatureFlag("COMPLEX_BINDINGS")) {

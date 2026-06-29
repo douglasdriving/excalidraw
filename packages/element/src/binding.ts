@@ -1055,6 +1055,62 @@ export const bindOrUnbindBindingElements = (
   });
 };
 
+/**
+ * Builds the binding object for a (non-elbow) arrow endpoint, applying the
+ * center-binding snap. This is the single source of truth for center bindings,
+ * so every path that constructs a binding (finalize via `bindBindingElement`,
+ * and the live drag in `LinearElementEditor.handlePointDragging`) stays
+ * consistent.
+ *
+ * Snaps to the element center when the endpoint is near it. We test the actual
+ * arrow endpoint (where the user released), not `focusPoint`, which is the
+ * arrow's aim point and lands on the center for any arrow pointing straight at
+ * the shape's middle. Once an endpoint is center-bound to an element the snap
+ * is sticky: its point has clipped to the outline and no longer reads as "near
+ * center", so we keep it centered until it binds to a different element.
+ */
+export const getNonElbowArrowBinding = (
+  arrow: NonDeleted<ExcalidrawArrowElement>,
+  hoveredElement: ExcalidrawBindableElement,
+  startOrEnd: "start" | "end",
+  mode: BindMode,
+  elementsMap: ElementsMap,
+  focusPoint?: GlobalPoint | null,
+): FixedPointBinding => {
+  const endpoint = LinearElementEditor.getPointAtIndexGlobalCoordinates(
+    arrow,
+    startOrEnd === "start" ? 0 : -1,
+    elementsMap,
+  );
+  const existingBinding =
+    arrow[startOrEnd === "start" ? "startBinding" : "endBinding"];
+  const snapToCenter =
+    isPointNearElementCenter(endpoint, hoveredElement, elementsMap) ||
+    (isCenterBinding(existingBinding) &&
+      existingBinding?.elementId === hoveredElement.id);
+
+  if (snapToCenter) {
+    return {
+      elementId: hoveredElement.id,
+      mode: "orbit",
+      fixedPoint: normalizeFixedPoint([0.5, 0.5]),
+      center: true,
+    };
+  }
+
+  return {
+    elementId: hoveredElement.id,
+    mode,
+    ...calculateFixedPointForNonElbowArrowBinding(
+      arrow,
+      hoveredElement,
+      startOrEnd,
+      elementsMap,
+      focusPoint ?? undefined,
+    ),
+  };
+};
+
 export const bindBindingElement = (
   arrow: NonDeleted<ExcalidrawArrowElement>,
   hoveredElement: ExcalidrawBindableElement,
@@ -1068,21 +1124,6 @@ export const bindBindingElement = (
 
   let binding: FixedPointBinding;
 
-  // Snap to the element center when the endpoint itself is dropped near it. We
-  // test the actual arrow endpoint (where the user released), not `focusPoint`,
-  // which is the arrow's aim point and lands on the center for any arrow
-  // pointing straight at the shape's middle. A center binding runs along the
-  // center-to-center axis (orbit mode clips it to the outline) and is drawn
-  // behind the bound shape (see below).
-  const endpoint = LinearElementEditor.getPointAtIndexGlobalCoordinates(
-    arrow,
-    startOrEnd === "start" ? 0 : -1,
-    elementsMap,
-  );
-  const snapToCenter =
-    !isElbowArrow(arrow) &&
-    isPointNearElementCenter(endpoint, hoveredElement, elementsMap);
-
   if (isElbowArrow(arrow)) {
     binding = {
       elementId: hoveredElement.id,
@@ -1095,25 +1136,15 @@ export const bindBindingElement = (
         shouldSnapToOutline,
       ),
     };
-  } else if (snapToCenter) {
-    binding = {
-      elementId: hoveredElement.id,
-      mode: "orbit",
-      fixedPoint: normalizeFixedPoint([0.5, 0.5]),
-      center: true,
-    };
   } else {
-    binding = {
-      elementId: hoveredElement.id,
+    binding = getNonElbowArrowBinding(
+      arrow,
+      hoveredElement,
+      startOrEnd,
       mode,
-      ...calculateFixedPointForNonElbowArrowBinding(
-        arrow,
-        hoveredElement,
-        startOrEnd,
-        elementsMap,
-        focusPoint,
-      ),
-    };
+      elementsMap,
+      focusPoint,
+    );
   }
 
   scene.mutateElement(arrow, {
