@@ -227,6 +227,7 @@ export type InteractiveCanvasAppState = Readonly<
     isBindingEnabled: AppState["isBindingEnabled"];
     isMidpointSnappingEnabled: AppState["isMidpointSnappingEnabled"];
     suggestedBinding: AppState["suggestedBinding"];
+    centerBindingHint: AppState["centerBindingHint"];
     isRotating: AppState["isRotating"];
     elementsToHighlight: AppState["elementsToHighlight"];
     // Collaborators
@@ -324,6 +325,15 @@ export interface AppState {
   suggestedBinding: {
     element: NonDeleted<ExcalidrawBindableElement>;
     midPoint?: GlobalPoint;
+  } | null;
+  /**
+   * While the arrow tool is active and hovering a bindable element, shows the
+   * center anchor + snap-radius circle. `active` is true when the pointer is
+   * within the snap radius (releasing there binds to the element center).
+   */
+  centerBindingHint: {
+    element: NonDeleted<ExcalidrawBindableElement>;
+    active: boolean;
   } | null;
   frameToHighlight: NonDeleted<ExcalidrawFrameLikeElement> | null;
   frameRendering: {

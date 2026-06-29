@@ -254,6 +254,7 @@ const getRelevantAppStateProps = (
   isBindingEnabled: appState.isBindingEnabled,
   isMidpointSnappingEnabled: appState.isMidpointSnappingEnabled,
   suggestedBinding: appState.suggestedBinding,
+  centerBindingHint: appState.centerBindingHint,
   isRotating: appState.isRotating,
   elementsToHighlight: appState.elementsToHighlight,
   collaborators: appState.collaborators, // Necessary for collab. sessions

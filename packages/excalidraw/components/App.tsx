@@ -249,6 +249,7 @@ import {
   doBoundsIntersect,
   isPointInElement,
   maxBindingDistance_simple,
+  isPointNearElementCenter,
   convertToExcalidrawElements,
   type ExcalidrawElementSkeleton,
   getSnapOutlineMidPoint,
@@ -6803,6 +6804,17 @@ class App extends React.Component<AppProps, AppState> {
     );
   };
 
+  private setCenterBindingHint = (next: AppState["centerBindingHint"]) => {
+    const current = this.state.centerBindingHint;
+    if (
+      (current?.element.id ?? null) === (next?.element.id ?? null) &&
+      (current?.active ?? null) === (next?.active ?? null)
+    ) {
+      return;
+    }
+    this.setState({ centerBindingHint: next });
+  };
+
   private handleCanvasPointerMove = (
     event: React.PointerEvent<HTMLCanvasElement>,
   ) => {
@@ -7149,14 +7161,14 @@ class App extends React.Component<AppProps, AppState> {
     }
 
     if (this.state.activeTool.type === "arrow") {
-      const hit = getHoveredElementForBinding(
-        pointFrom<GlobalPoint>(scenePointerX, scenePointerY),
-        this.scene.getNonDeletedElements(),
-        this.scene.getNonDeletedElementsMap(),
-        maxBindingDistance_simple(this.state.zoom),
-      );
       const scenePointer = pointFrom<GlobalPoint>(scenePointerX, scenePointerY);
       const elementsMap = this.scene.getNonDeletedElementsMap();
+      const hit = getHoveredElementForBinding(
+        scenePointer,
+        this.scene.getNonDeletedElements(),
+        elementsMap,
+        maxBindingDistance_simple(this.state.zoom),
+      );
       if (hit && !isPointInElement(scenePointer, hit, elementsMap)) {
         this.setState({
           suggestedBinding: {
@@ -7170,6 +7182,18 @@ class App extends React.Component<AppProps, AppState> {
           },
         });
       }
+      // Center-binding hint: show the center anchor + snap radius while hovering
+      // a bindable (including over its body); `active` once within the radius.
+      this.setCenterBindingHint(
+        hit
+          ? {
+              element: hit,
+              active: isPointNearElementCenter(scenePointer, hit, elementsMap),
+            }
+          : null,
+      );
+    } else if (this.state.centerBindingHint) {
+      this.setCenterBindingHint(null);
     }
 
     const isPressingAnyButton = Boolean(event.buttons);

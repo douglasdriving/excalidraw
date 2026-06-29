@@ -24,6 +24,7 @@ import {
   deconstructDiamondElement,
   deconstructRectanguloidElement,
   elementCenterPoint,
+  getCenterBindingSnapRadius,
   getDiamondBaseCorners,
   FOCUS_POINT_SIZE,
   getOmitSidesForEditorInterface,
@@ -1250,6 +1251,55 @@ const renderFocusPointCicle = (
   context.restore();
 };
 
+// Visualizes where an arrow will snap to a shape's center: a circle showing the
+// snap radius (in scene units, so it tracks the actual snap zone) plus a center
+// anchor dot. When `active`, the pointer is within the radius and the indicator
+// becomes solid to signal that releasing there binds to the center.
+const CENTER_BINDING_HINT_COLOR = "rgba(134, 131, 226, 1)";
+
+const renderCenterBindingHint = (
+  context: CanvasRenderingContext2D,
+  appState: InteractiveCanvasAppState,
+  hint: NonNullable<AppState["centerBindingHint"]>,
+  elementsMap: ElementsMap,
+) => {
+  const zoom = appState.zoom.value;
+  const center = elementCenterPoint(hint.element, elementsMap);
+  const radius = getCenterBindingSnapRadius(hint.element);
+
+  context.save();
+  context.translate(appState.scrollX, appState.scrollY);
+
+  // Snap-radius circle
+  context.beginPath();
+  context.lineWidth = 1 / zoom;
+  context.strokeStyle = CENTER_BINDING_HINT_COLOR;
+  context.setLineDash(hint.active ? [] : [4 / zoom, 4 / zoom]);
+  context.arc(center[0], center[1], radius, 0, 2 * Math.PI);
+  if (hint.active) {
+    context.fillStyle = "rgba(134, 131, 226, 0.12)";
+    context.fill();
+  }
+  context.stroke();
+  context.setLineDash([]);
+
+  // Center anchor dot (constant screen size)
+  context.strokeStyle = CENTER_BINDING_HINT_COLOR;
+  context.fillStyle = hint.active
+    ? CENTER_BINDING_HINT_COLOR
+    : "rgba(255, 255, 255, 0.9)";
+  fillCircle(
+    context,
+    center[0],
+    center[1],
+    (hint.active ? 5 : 4) / zoom,
+    true,
+    true,
+  );
+
+  context.restore();
+};
+
 const renderFocusPointIndicator = ({
   arrow,
   appState,
@@ -1673,6 +1723,15 @@ const _renderInteractiveScene = ({
       ...animationState,
       bindingHighlight: undefined,
     };
+  }
+
+  if (appState.isBindingEnabled && appState.centerBindingHint) {
+    renderCenterBindingHint(
+      context,
+      appState,
+      appState.centerBindingHint,
+      allElementsMap,
+    );
   }
 
   if (appState.frameToHighlight) {

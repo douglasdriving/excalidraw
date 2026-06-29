@@ -14,6 +14,7 @@ exports[`exportToSvg > with default arguments 1`] = `
   "bindMode": "orbit",
   "bindingPreference": "enabled",
   "boxSelectionMode": "contain",
+  "centerBindingHint": null,
   "collaborators": Map {},
   "contextMenu": null,
   "croppingElementId": null,

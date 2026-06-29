@@ -141,15 +141,23 @@ export const isCenterBinding = (
   binding: FixedPointBinding | null | undefined,
 ): boolean => binding?.center === true;
 
-const isPointNearElementCenter = (
+/**
+ * Radius (in scene units) of the zone around an element's center within which
+ * an arrow endpoint snaps to a center binding. Used both by the binding logic
+ * and by the interactive overlay that visualizes the snap zone.
+ */
+export const getCenterBindingSnapRadius = (
+  element: ExcalidrawBindableElement,
+): number =>
+  (Math.min(element.width, element.height) / 2) * CENTER_BINDING_SNAP_RATIO;
+
+export const isPointNearElementCenter = (
   point: GlobalPoint,
   element: ExcalidrawBindableElement,
   elementsMap: ElementsMap,
 ): boolean => {
   const center = elementCenterPoint(element, elementsMap);
-  const snapRadius =
-    (Math.min(element.width, element.height) / 2) * CENTER_BINDING_SNAP_RATIO;
-  return pointDistance(point, center) <= snapRadius;
+  return pointDistance(point, center) <= getCenterBindingSnapRadius(element);
 };
 
 export const maxBindingDistance_simple = (zoom?: AppState["zoom"]): number => {
