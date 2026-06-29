@@ -294,6 +294,12 @@ export type FixedPointBinding = {
   // Determines whether the arrow remains outside the shape or is allowed to
   // go all the way inside the shape up to the exact fixed point.
   mode: BindMode;
+
+  // When true, the endpoint is bound to the element center: the arrow runs
+  // along the center-to-center axis, its visible end is clipped to the outline
+  // with no gap, and its line is drawn behind the bound shape. Implemented on
+  // top of "orbit" mode (fixedPoint is the center).
+  center?: boolean;
 };
 
 type Index = number;

@@ -17,6 +17,7 @@ import {
 import { defaultLang, setLanguage } from "@excalidraw/excalidraw/i18n";
 
 import { getTransformHandles } from "../src/transformHandles";
+import { LinearElementEditor } from "../src/linearElementEditor";
 import {
   getTextEditor,
   TEXT_EDITOR_SELECTOR,
@@ -752,6 +753,95 @@ describe("binding for simple arrows", () => {
 
       expect(document.querySelector(TEXT_EDITOR_SELECTOR)).toBe(null);
       expect(arrow.endBinding).toBe(null);
+    });
+  });
+
+  describe("center binding", () => {
+    beforeEach(async () => {
+      mouse.reset();
+
+      await act(() => {
+        return setLanguage(defaultLang);
+      });
+      await render(<Excalidraw handleKeyboardGlobally={true} />);
+    });
+
+    it("snaps to center, clips the line to each outline, and draws behind both shapes", () => {
+      // Two rectangles: centers at (200, 200) and (600, 200)
+      UI.clickTool("rectangle");
+      mouse.downAt(100, 100);
+      mouse.moveTo(300, 300);
+      mouse.up();
+      const rect1 = API.getSelectedElement();
+
+      UI.clickTool("rectangle");
+      mouse.downAt(500, 100);
+      mouse.moveTo(700, 300);
+      mouse.up();
+      const rect2 = API.getSelectedElement();
+
+      // Arrow dropped from the center of rect1 to the center of rect2
+      UI.clickTool("arrow");
+      mouse.downAt(200, 200);
+      mouse.moveTo(600, 200);
+      mouse.up();
+      const arrow = API.getSelectedElement() as ExcalidrawArrowElement;
+
+      const startBinding = arrow.startBinding as FixedPointBinding;
+      const endBinding = arrow.endBinding as FixedPointBinding;
+
+      // Both ends are center bindings: orbit mode, flagged, fixed at the center
+      expect(startBinding?.elementId).toBe(rect1.id);
+      expect(endBinding?.elementId).toBe(rect2.id);
+      expect(startBinding.center).toBe(true);
+      expect(endBinding.center).toBe(true);
+      expect(startBinding.mode).toBe("orbit");
+      expect(endBinding.mode).toBe("orbit");
+      expect(startBinding.fixedPoint[0]).toBeCloseTo(0.5, 2);
+      expect(startBinding.fixedPoint[1]).toBeCloseTo(0.5, 2);
+      expect(endBinding.fixedPoint[0]).toBeCloseTo(0.5, 2);
+      expect(endBinding.fixedPoint[1]).toBeCloseTo(0.5, 2);
+
+      // The visible endpoints clip to each outline along the center-to-center
+      // axis with no gap: rect1 right edge (300, 200) -> rect2 left edge (500, 200)
+      const elementsMap = h.scene.getNonDeletedElementsMap();
+      const startGlobal = LinearElementEditor.getPointAtIndexGlobalCoordinates(
+        arrow,
+        0,
+        elementsMap,
+      );
+      const endGlobal = LinearElementEditor.getPointAtIndexGlobalCoordinates(
+        arrow,
+        -1,
+        elementsMap,
+      );
+      expect(startGlobal[0]).toBeCloseTo(300, 0);
+      expect(startGlobal[1]).toBeCloseTo(200, 0);
+      expect(endGlobal[0]).toBeCloseTo(500, 0);
+      expect(endGlobal[1]).toBeCloseTo(200, 0);
+
+      // The arrow is z-ordered below both bound shapes (drawn behind them)
+      const ids = h.elements.map((el) => el.id);
+      expect(ids.indexOf(arrow.id)).toBeLessThan(ids.indexOf(rect1.id));
+      expect(ids.indexOf(arrow.id)).toBeLessThan(ids.indexOf(rect2.id));
+    });
+
+    it("does not snap to center when the endpoint is dropped near the edge", () => {
+      UI.clickTool("rectangle");
+      mouse.downAt(100, 100);
+      mouse.moveTo(300, 300);
+      mouse.up();
+      const rect = API.getSelectedElement();
+
+      // Arrow ending near the left edge (x ~ 105), far from the center (200, 200)
+      UI.clickTool("arrow");
+      mouse.downAt(50, 200);
+      mouse.moveTo(105, 200);
+      mouse.up();
+      const arrow = API.getSelectedElement() as ExcalidrawArrowElement;
+
+      expect(arrow.endBinding?.elementId).toBe(rect.id);
+      expect(arrow.endBinding?.center).toBeUndefined();
     });
   });
 });

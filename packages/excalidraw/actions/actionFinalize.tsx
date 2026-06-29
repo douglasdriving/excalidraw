@@ -13,6 +13,7 @@ import {
   isLinearElement,
   isLineElement,
 } from "@excalidraw/element";
+import { withArrowBelowBindables } from "@excalidraw/element/zindex";
 
 import {
   KEYS,
@@ -131,6 +132,25 @@ export const actionFinalize = register<FormData>({
           scene.mutateElement(element, {
             polygon: false,
           });
+        }
+      }
+
+      // A center-bound arrow's line is drawn behind the shapes it connects to.
+      // Reorder once here, after binding has settled, so the new element order
+      // survives the creation flow (which keeps reassigning the new element's
+      // z-index while it is being drawn).
+      if (isBindingElement(element)) {
+        const centerBoundIds = [
+          element.startBinding,
+          element.endBinding,
+        ].flatMap((binding) => (binding?.center ? [binding.elementId] : []));
+
+        if (centerBoundIds.length > 0) {
+          newElements = withArrowBelowBindables(
+            scene.getElementsIncludingDeleted(),
+            element.id,
+            centerBoundIds,
+          );
         }
       }
 

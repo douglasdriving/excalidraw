@@ -124,6 +124,34 @@ export const getBindingGap = (
   );
 };
 
+/**
+ * Center binding: an arrow endpoint dropped within this fraction of an
+ * element's smaller half-extent from its center snaps to the element center.
+ * The arrow then runs along the center-to-center axis, its visible endpoints
+ * are clipped to each outline, and its line is drawn behind the bound shapes.
+ */
+export const CENTER_BINDING_SNAP_RATIO = 0.25;
+
+/**
+ * A "center binding" is explicitly flagged (see `FixedPointBinding.center`).
+ * We rely on the flag rather than inferring from the fixed point value, so an
+ * ordinary binding that merely happens to sit at the center is left untouched.
+ */
+export const isCenterBinding = (
+  binding: FixedPointBinding | null | undefined,
+): boolean => binding?.center === true;
+
+const isPointNearElementCenter = (
+  point: GlobalPoint,
+  element: ExcalidrawBindableElement,
+  elementsMap: ElementsMap,
+): boolean => {
+  const center = elementCenterPoint(element, elementsMap);
+  const snapRadius =
+    (Math.min(element.width, element.height) / 2) * CENTER_BINDING_SNAP_RATIO;
+  return pointDistance(point, center) <= snapRadius;
+};
+
 export const maxBindingDistance_simple = (zoom?: AppState["zoom"]): number => {
   const BASE_BINDING_DISTANCE = Math.max(BASE_BINDING_GAP, 15);
   const zoomValue = zoom?.value && zoom.value < 1 ? zoom.value : 1;
@@ -1032,6 +1060,21 @@ export const bindBindingElement = (
 
   let binding: FixedPointBinding;
 
+  // Snap to the element center when the endpoint itself is dropped near it. We
+  // test the actual arrow endpoint (where the user released), not `focusPoint`,
+  // which is the arrow's aim point and lands on the center for any arrow
+  // pointing straight at the shape's middle. A center binding runs along the
+  // center-to-center axis (orbit mode clips it to the outline) and is drawn
+  // behind the bound shape (see below).
+  const endpoint = LinearElementEditor.getPointAtIndexGlobalCoordinates(
+    arrow,
+    startOrEnd === "start" ? 0 : -1,
+    elementsMap,
+  );
+  const snapToCenter =
+    !isElbowArrow(arrow) &&
+    isPointNearElementCenter(endpoint, hoveredElement, elementsMap);
+
   if (isElbowArrow(arrow)) {
     binding = {
       elementId: hoveredElement.id,
@@ -1043,6 +1086,13 @@ export const bindBindingElement = (
         elementsMap,
         shouldSnapToOutline,
       ),
+    };
+  } else if (snapToCenter) {
+    binding = {
+      elementId: hoveredElement.id,
+      mode: "orbit",
+      fixedPoint: normalizeFixedPoint([0.5, 0.5]),
+      center: true,
     };
   } else {
     binding = {
@@ -1806,6 +1856,19 @@ export const updateBoundPoint = (
   const intersector =
     otherFocusPointOrArrowPoint &&
     lineSegment(focusPoint, otherFocusPointOrArrowPoint);
+  // Center bindings touch the outline exactly (no gap) so the visible line
+  // connects the two closest outline points along the center-to-center axis.
+  const otherBindingField =
+    startOrEnd === "startBinding" ? "endBinding" : "startBinding";
+  const thisGap = isCenterBinding(binding)
+    ? 0
+    : getBindingGap(bindableElement, arrow);
+  const otherGap =
+    otherBindable && isCenterBinding(arrow[otherBindingField])
+      ? 0
+      : otherBindable
+      ? getBindingGap(otherBindable, arrow)
+      : 0;
   const otherOutlinePoint =
     otherBindable &&
     intersector &&
@@ -1813,7 +1876,7 @@ export const updateBoundPoint = (
       otherBindable,
       elementsMap,
       intersector,
-      getBindingGap(otherBindable, arrow),
+      otherGap,
     ).sort(
       (a, b) => pointDistanceSq(a, focusPoint) - pointDistanceSq(b, focusPoint),
     )[0];
@@ -1823,7 +1886,7 @@ export const updateBoundPoint = (
       bindableElement,
       elementsMap,
       intersector,
-      getBindingGap(bindableElement, arrow),
+      thisGap,
     ).sort(
       (a, b) =>
         pointDistanceSq(a, otherFocusPointOrArrowPoint) -

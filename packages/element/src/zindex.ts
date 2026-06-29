@@ -149,6 +149,46 @@ const getContiguousFrameRangeElements = (
 };
 
 /**
+ * Returns `elements` with `arrow` moved directly below all of the shapes in
+ * `bindableIds` (so a center-bound arrow's line is drawn behind the shapes it
+ * connects), re-syncing fractional indices so the new order survives a sort.
+ * Returns the original array (same reference) when no move is needed. Pure, so
+ * it can be applied to a freshly-finalized element array.
+ */
+export const withArrowBelowBindables = (
+  elements: readonly Ordered<NonDeletedExcalidrawElement>[],
+  arrowId: string,
+  bindableIds: readonly string[],
+): readonly Ordered<NonDeletedExcalidrawElement>[] => {
+  const arrowIdx = elements.findIndex((el) => el.id === arrowId);
+  if (arrowIdx === -1) {
+    return elements;
+  }
+
+  // To sit behind every bound shape, the arrow must go just before the lowest
+  // one. If it is already below all of them, there is nothing to do.
+  const boundIndices = bindableIds
+    .map((id) => elements.findIndex((el) => el.id === id))
+    .filter((idx) => idx !== -1);
+  if (boundIndices.length === 0) {
+    return elements;
+  }
+  const lowestBoundIdx = Math.min(...boundIndices);
+  if (arrowIdx < lowestBoundIdx) {
+    return elements;
+  }
+
+  const updatedElements = Array.from(elements);
+  const [movedArrow] = updatedElements.splice(arrowIdx, 1);
+  // arrowIdx > lowestBoundIdx, so removing the arrow leaves lowestBoundIdx put.
+  updatedElements.splice(lowestBoundIdx, 0, movedArrow);
+
+  syncMovedIndices(updatedElements, arrayToMap([movedArrow]));
+
+  return updatedElements;
+};
+
+/**
  * Moves the arrow element above any bindable elements it intersects with or
  * hovers over.
  */
