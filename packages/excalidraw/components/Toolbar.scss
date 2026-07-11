@@ -3,8 +3,7 @@
 .excalidraw {
   .App-toolbar {
     &.zen-mode {
-      .ToolIcon__keybinding,
-      .HintViewer {
+      .ToolIcon__keybinding {
         display: none;
       }
     }
