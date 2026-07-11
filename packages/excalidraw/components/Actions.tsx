@@ -60,7 +60,6 @@ import {
   useStylesPanelMode,
   useExcalidrawContainer,
 } from "./App";
-import Stack from "./Stack";
 import { ToolButton } from "./ToolButton";
 import { ToolPopover } from "./ToolPopover";
 import { Tooltip } from "./Tooltip";
@@ -87,7 +86,6 @@ import type {
   AppClassProperties,
   AppProps,
   UIAppState,
-  Zoom,
   AppState,
 } from "../types";
 import type { ActionManager } from "../actions/manager";
@@ -1280,22 +1278,6 @@ export const ShapesSwitcher = ({
     </>
   );
 };
-
-export const ZoomActions = ({
-  renderAction,
-  zoom,
-}: {
-  renderAction: ActionManager["renderAction"];
-  zoom: Zoom;
-}) => (
-  <Stack.Col gap={1} className={CLASSES.ZOOM_ACTIONS}>
-    <Stack.Row align="center">
-      {renderAction("zoomOut")}
-      {renderAction("resetZoom")}
-      {renderAction("zoomIn")}
-    </Stack.Row>
-  </Stack.Col>
-);
 
 export const UndoRedoActions = ({
   renderAction,
