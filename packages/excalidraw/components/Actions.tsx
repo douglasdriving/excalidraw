@@ -1118,8 +1118,9 @@ export const ShapesSwitcher = ({
           const shortcut = letter
             ? `${letter} ${t("helpDialog.or")} ${numericKey}`
             : `${numericKey}`;
-          const keybindingLabel =
-            value === "hand" ? undefined : numericKey || letter;
+          // prefer the letter shortcut (e.g. "P" for pen) over the numeric
+          // hint; fall back to the number for tools without a letter (image)
+          const keybindingLabel = letter || numericKey;
 
           // when in compact styles panel mode (tablet)
           // use a ToolPopover for selection/lasso toggle as well

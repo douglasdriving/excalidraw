@@ -24,7 +24,7 @@ export const SHAPES = [
     key: KEYS.H,
     numericKey: null,
     fillable: false,
-    toolbar: true,
+    toolbar: false,
   },
   {
     icon: SelectionIcon,
