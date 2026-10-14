@@ -77,7 +77,7 @@ export const SHAPES = [
   {
     icon: FreedrawIcon,
     value: "freedraw",
-    key: [KEYS.P, KEYS.X],
+    key: KEYS.P,
     numericKey: KEYS["7"],
     fillable: false,
     toolbar: true,
@@ -133,10 +133,7 @@ export const findShapeByKey = (key: string, app: AppClassProperties) => {
   const shape = getToolbarTools(app).find((shape, index) => {
     return (
       (shape.numericKey != null && key === shape.numericKey.toString()) ||
-      (shape.key &&
-        (typeof shape.key === "string"
-          ? shape.key === key
-          : (shape.key as readonly string[]).includes(key)))
+      shape.key === key
     );
   });
   return shape?.value || null;

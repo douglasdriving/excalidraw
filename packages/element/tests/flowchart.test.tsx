@@ -385,23 +385,25 @@ describe("flow chart navigation", () => {
     expect(h.state.selectedElementIds[predecessorToRightMostNode.id]).toBe(
       true,
     );
-    API.setSelectedElements([rightMostNode]);
+  });
+
+  it("leaves Alt+Up/Down to layer ordering", () => {
+    const rectangle = API.createElement({ type: "rectangle" });
+    API.setElements([rectangle]);
+    API.setSelectedElements([rectangle]);
+
+    Keyboard.withModifierKeys({ ctrl: true }, () => {
+      Keyboard.keyPress(KEYS.ARROW_RIGHT);
+    });
+    Keyboard.keyUp(KEYS.CTRL_OR_CMD);
+
+    const node = h.elements[h.elements.length - 2];
+    expect(h.state.selectedElementIds[node.id]).toBe(true);
+
     Keyboard.withModifierKeys({ alt: true }, () => {
       Keyboard.keyPress(KEYS.ARROW_UP);
     });
     Keyboard.keyUp(KEYS.ALT);
-    expect(h.state.selectedElementIds[rightMostNode.id]).not.toBe(true);
-    expect(h.state.selectedElementIds[predecessorToRightMostNode.id]).toBe(
-      true,
-    );
-    API.setSelectedElements([rightMostNode]);
-    Keyboard.withModifierKeys({ alt: true }, () => {
-      Keyboard.keyPress(KEYS.ARROW_DOWN);
-    });
-    Keyboard.keyUp(KEYS.ALT);
-    expect(h.state.selectedElementIds[rightMostNode.id]).not.toBe(true);
-    expect(h.state.selectedElementIds[predecessorToRightMostNode.id]).toBe(
-      true,
-    );
+    expect(h.state.selectedElementIds[node.id]).toBe(true);
   });
 });

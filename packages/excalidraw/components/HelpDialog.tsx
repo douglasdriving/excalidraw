@@ -1,6 +1,6 @@
 import React from "react";
 
-import { isDarwin, isFirefox, isWindows } from "@excalidraw/common";
+import { isFirefox, isWindows } from "@excalidraw/common";
 
 import { KEYS } from "@excalidraw/common";
 
@@ -342,7 +342,7 @@ export const HelpDialog = ({ onClose }: { onClose?: () => void }) => {
             />
             <Shortcut
               label={t("helpDialog.navigateFlowchart")}
-              shortcuts={[getShortcutKey(`Alt+Arrow Key`)]}
+              shortcuts={[getShortcutKey(`Alt+Left/Right`)]}
               isOr={true}
             />
             <Shortcut
@@ -359,7 +359,7 @@ export const HelpDialog = ({ onClose }: { onClose?: () => void }) => {
             />
             <Shortcut
               label={t("labels.delete")}
-              shortcuts={[getShortcutKey("Delete")]}
+              shortcuts={[getShortcutKey("Delete"), getShortcutKey("X")]}
             />
             <Shortcut
               label={t("labels.cut")}
@@ -411,27 +411,23 @@ export const HelpDialog = ({ onClose }: { onClose?: () => void }) => {
             />
             <Shortcut
               label={t("labels.sendToBack")}
-              shortcuts={[
-                isDarwin
-                  ? getShortcutKey("CtrlOrCmd+Alt+[")
-                  : getShortcutKey("CtrlOrCmd+Shift+["),
-              ]}
+              shortcuts={[getShortcutKey("Alt+Shift+Down")]}
             />
             <Shortcut
               label={t("labels.bringToFront")}
-              shortcuts={[
-                isDarwin
-                  ? getShortcutKey("CtrlOrCmd+Alt+]")
-                  : getShortcutKey("CtrlOrCmd+Shift+]"),
-              ]}
+              shortcuts={[getShortcutKey("Alt+Shift+Up")]}
             />
             <Shortcut
               label={t("labels.sendBackward")}
-              shortcuts={[getShortcutKey("CtrlOrCmd+[")]}
+              shortcuts={[getShortcutKey("Alt+Down")]}
             />
             <Shortcut
               label={t("labels.bringForward")}
-              shortcuts={[getShortcutKey("CtrlOrCmd+]")]}
+              shortcuts={[getShortcutKey("Alt+Up")]}
+            />
+            <Shortcut
+              label={t("labels.fitContainerToText")}
+              shortcuts={[getShortcutKey("Alt+F")]}
             />
             <Shortcut
               label={t("labels.alignTop")}

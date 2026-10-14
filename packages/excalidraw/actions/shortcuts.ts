@@ -1,5 +1,3 @@
-import { isDarwin } from "@excalidraw/common";
-
 import type { SubtypeOf } from "@excalidraw/common/utility-types";
 
 import { t } from "../i18n";
@@ -26,6 +24,7 @@ export type ShortcutName =
       | "sendToBack"
       | "bringToFront"
       | "copyAsPng"
+      | "fitContainerToText"
       | "group"
       | "ungroup"
       | "gridMode"
@@ -74,23 +73,16 @@ const shortcutMap: Record<ShortcutName, string[]> = {
   copyStyles: [getShortcutKey("CtrlOrCmd+Alt+C")],
   pasteStyles: [getShortcutKey("CtrlOrCmd+Alt+V")],
   selectAll: [getShortcutKey("CtrlOrCmd+A")],
-  deleteSelectedElements: [getShortcutKey("Delete")],
+  deleteSelectedElements: [getShortcutKey("Delete"), getShortcutKey("X")],
   duplicateSelection: [
     getShortcutKey("CtrlOrCmd+D"),
     getShortcutKey(`Alt+${t("helpDialog.drag")}`),
   ],
-  sendBackward: [getShortcutKey("CtrlOrCmd+[")],
-  bringForward: [getShortcutKey("CtrlOrCmd+]")],
-  sendToBack: [
-    isDarwin
-      ? getShortcutKey("CtrlOrCmd+Alt+[")
-      : getShortcutKey("CtrlOrCmd+Shift+["),
-  ],
-  bringToFront: [
-    isDarwin
-      ? getShortcutKey("CtrlOrCmd+Alt+]")
-      : getShortcutKey("CtrlOrCmd+Shift+]"),
-  ],
+  sendBackward: [getShortcutKey("Alt+Down")],
+  bringForward: [getShortcutKey("Alt+Up")],
+  sendToBack: [getShortcutKey("Alt+Shift+Down")],
+  bringToFront: [getShortcutKey("Alt+Shift+Up")],
+  fitContainerToText: [getShortcutKey("Alt+F")],
   copyAsPng: [getShortcutKey("Shift+Alt+C")],
   group: [getShortcutKey("CtrlOrCmd+G")],
   ungroup: [getShortcutKey("CtrlOrCmd+Shift+G")],

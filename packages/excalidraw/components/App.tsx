@@ -4813,7 +4813,11 @@ class App extends React.Component<AppProps, AppState> {
             this.state,
           );
 
-          if (selectedElements.length === 1 && arrowKeyPressed) {
+          // Alt+Up/Down is reserved for layer ordering (see actionZindex)
+          if (
+            selectedElements.length === 1 &&
+            (event.key === KEYS.ARROW_LEFT || event.key === KEYS.ARROW_RIGHT)
+          ) {
             event.preventDefault();
 
             const nextId = this.flowChartNavigator.exploreByDirection(

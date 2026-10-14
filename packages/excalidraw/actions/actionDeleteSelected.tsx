@@ -303,7 +303,11 @@ export const actionDeleteSelected = register({
     };
   },
   keyTest: (event, appState, elements) =>
-    (event.key === KEYS.BACKSPACE || event.key === KEYS.DELETE) &&
+    (event.key === KEYS.BACKSPACE ||
+      event.key === KEYS.DELETE ||
+      (event.key.toLowerCase() === KEYS.X &&
+        !event.shiftKey &&
+        !event.altKey)) &&
     !event[KEYS.CTRL_OR_CMD],
   PanelComponent: ({ elements, appState, updateData, app }) => {
     const isMobile = useStylesPanelMode() === "mobile";

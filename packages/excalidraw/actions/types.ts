@@ -138,6 +138,7 @@ export type ActionName =
   | "wrapTextInContainer"
   | "commandPalette"
   | "autoResize"
+  | "fitContainerToText"
   | "elementStats"
   | "searchMenu"
   | "copyElementLink"
