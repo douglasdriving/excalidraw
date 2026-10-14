@@ -5,6 +5,8 @@ import { WelcomeScreen } from "@excalidraw/excalidraw/index";
 import React from "react";
 
 import { isExcalidrawPlusSignedUser } from "../app_constants";
+import { LocalFiles } from "../localFiles/LocalFiles";
+import { folderOpenIcon } from "../localFiles/icons";
 
 export const AppWelcomeScreen: React.FC<{
   onCollabDialogOpen: () => any;
@@ -35,11 +37,9 @@ export const AppWelcomeScreen: React.FC<{
   } else {
     headingContent = (
       <>
-        {t("welcomeScreen.app.center_heading")}
+        Start drawing: this canvas is saved automatically
         <br />
-        {t("welcomeScreen.app.center_heading_line2")}
-        <br />
-        {t("welcomeScreen.app.center_heading_line3")}
+        as an .excalidraw file on this computer.
       </>
     );
   }
@@ -57,7 +57,13 @@ export const AppWelcomeScreen: React.FC<{
           {headingContent}
         </WelcomeScreen.Center.Heading>
         <WelcomeScreen.Center.Menu>
-          <WelcomeScreen.Center.MenuItemLoadScene />
+          <WelcomeScreen.Center.MenuItem
+            icon={folderOpenIcon}
+            shortcut="Ctrl+O"
+            onSelect={() => LocalFiles.setDialog("open")}
+          >
+            Open a saved canvas
+          </WelcomeScreen.Center.MenuItem>
           <WelcomeScreen.Center.MenuItemHelp />
           {props.isCollabEnabled && (
             <WelcomeScreen.Center.MenuItemLiveCollaborationTrigger

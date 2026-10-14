@@ -7,6 +7,13 @@ import { isDevEnv } from "@excalidraw/common";
 import type { Theme } from "@excalidraw/element/types";
 
 import { LanguageList } from "../app-language/LanguageList";
+import { LocalFiles } from "../localFiles/LocalFiles";
+import {
+  copyIcon,
+  filePlusIcon,
+  folderOpenIcon,
+  historyIcon,
+} from "../localFiles/icons";
 
 import { saveDebugState } from "./DebugCanvas";
 
@@ -19,8 +26,37 @@ export const AppMainMenu: React.FC<{
 }> = React.memo((props) => {
   return (
     <MainMenu>
-      <MainMenu.DefaultItems.LoadScene />
-      <MainMenu.DefaultItems.SaveToActiveFile />
+      <MainMenu.Item
+        icon={filePlusIcon}
+        onSelect={() => LocalFiles.newCanvas()}
+      >
+        New canvas
+      </MainMenu.Item>
+      <MainMenu.Item
+        icon={folderOpenIcon}
+        shortcut="Ctrl+O"
+        onSelect={() => LocalFiles.setDialog("open")}
+      >
+        Open…
+      </MainMenu.Item>
+      <MainMenu.Item
+        icon={copyIcon}
+        shortcut="Ctrl+S"
+        onSelect={() => LocalFiles.setDialog("saveAs")}
+      >
+        Save as…
+      </MainMenu.Item>
+      <MainMenu.Item
+        icon={historyIcon}
+        onSelect={() =>
+          LocalFiles.state.currentName
+            ? LocalFiles.setDialog("history")
+            : LocalFiles.setDialog("saveAs")
+        }
+      >
+        Version history
+      </MainMenu.Item>
+      <MainMenu.Separator />
       <MainMenu.DefaultItems.Export />
       <MainMenu.DefaultItems.SaveAsImage />
       <MainMenu.DefaultItems.CommandPalette className="highlighted" />

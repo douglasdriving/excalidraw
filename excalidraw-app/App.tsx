@@ -143,6 +143,14 @@ import { ExcalidrawPlusIframeExport } from "./ExcalidrawPlusIframeExport";
 import "./index.scss";
 
 import { AppSidebar } from "./components/AppSidebar";
+import { LocalFiles } from "./localFiles/LocalFiles";
+import { FileStatusPill, LocalFilesUI } from "./localFiles/LocalFilesUI";
+import {
+  copyIcon,
+  filePlusIcon,
+  folderOpenIcon,
+  historyIcon,
+} from "./localFiles/icons";
 
 import type { CollabAPI } from "./collab/Collab";
 
@@ -297,6 +305,7 @@ const initializeScene = async (opts: {
       window.history.replaceState({}, APP_NAME, window.location.origin);
     }
   } else if (externalUrlMatch) {
+    LocalFiles.initUntitled();
     window.history.replaceState({}, APP_NAME, window.location.origin);
 
     const url = externalUrlMatch[1];
@@ -317,6 +326,20 @@ const initializeScene = async (opts: {
           },
         },
         isExternalScene,
+      };
+    }
+  }
+
+  if (isExternalScene) {
+    LocalFiles.initUntitled();
+  } else if (!externalUrlMatch) {
+    const fileScene = await LocalFiles.loadInitialScene(
+      localDataState?.appState ?? null,
+    );
+    if (fileScene) {
+      return {
+        scene: { ...fileScene, scrollToContent: true },
+        isExternalScene: false,
       };
     }
   }
@@ -457,7 +480,11 @@ const ExcalidrawWrapper = () => {
       } else {
         const fileIds =
           data.scene.elements?.reduce((acc, element) => {
-            if (isInitializedImageElement(element)) {
+            if (
+              isInitializedImageElement(element) &&
+              // files loaded from a local .excalidraw file come embedded
+              !data.scene?.files?.[element.fileId]
+            ) {
               return acc.concat(element.fileId);
             }
             return acc;
@@ -559,8 +586,13 @@ const ExcalidrawWrapper = () => {
         !document.hidden &&
         ((collabAPI && !collabAPI.isCollaborating()) || isCollabDisabled)
       ) {
-        // don't sync if local state is newer or identical to browser state
-        if (isBrowserStorageStateNewer(STORAGE_KEYS.VERSION_DATA_STATE)) {
+        // don't sync if local state is newer or identical to browser state.
+        // With local files, each tab owns its canvas file, so don't pull
+        // another tab's scene in from browser storage.
+        if (
+          !LocalFiles.isActive() &&
+          isBrowserStorageStateNewer(STORAGE_KEYS.VERSION_DATA_STATE)
+        ) {
           const localDataState = importFromLocalStorage();
           const username = importUsernameFromLocalStorage();
           setLangCode(getPreferredLanguage());
@@ -676,6 +708,8 @@ const ExcalidrawWrapper = () => {
   ) => {
     if (collabAPI?.isCollaborating()) {
       collabAPI.syncElements(elements);
+    } else {
+      LocalFiles.onChange(elements, appState);
     }
 
     // this check is redundant, but since this is a hot path, it's best
@@ -911,6 +945,9 @@ const ExcalidrawWrapper = () => {
         UIOptions={{
           canvasActions: {
             toggleTheme: true,
+            // replaced by the local files system (excalidraw-app/localFiles)
+            loadScene: false,
+            saveToActiveFile: false,
             export: {
               onExportToBackend,
               renderCustomUI: excalidrawAPI
@@ -948,13 +985,15 @@ const ExcalidrawWrapper = () => {
         theme={editorTheme}
         onThemeChange={setAppTheme}
         renderTopRightUI={(isMobile) => {
-          if (isMobile || !collabAPI || isCollabDisabled) {
-            return null;
-          }
-
           return (
             <div className="excalidraw-ui-top-right">
-              {collabError.message && <CollabError collabError={collabError} />}
+              {!isMobile &&
+                collabAPI &&
+                !isCollabDisabled &&
+                collabError.message && (
+                  <CollabError collabError={collabError} />
+                )}
+              <FileStatusPill />
             </div>
           );
         }}
@@ -997,6 +1036,7 @@ const ExcalidrawWrapper = () => {
           )}
         </OverwriteConfirmDialog>
         <AppFooter onChange={() => excalidrawAPI?.refresh()} />
+        <LocalFilesUI excalidrawAPI={excalidrawAPI} />
         {excalidrawAPI && <AIComponents excalidrawAPI={excalidrawAPI} />}
 
         <TTDDialogTrigger />
@@ -1048,6 +1088,39 @@ const ExcalidrawWrapper = () => {
 
         <CommandPalette
           customCommandPaletteItems={[
+            {
+              label: "New canvas",
+              category: DEFAULT_CATEGORIES.app,
+              icon: filePlusIcon,
+              keywords: ["file", "create", "blank", "untitled"],
+              predicate: () => LocalFiles.isActive(),
+              perform: () => LocalFiles.newCanvas(),
+            },
+            {
+              label: "Open canvas…",
+              category: DEFAULT_CATEGORIES.app,
+              icon: folderOpenIcon,
+              keywords: ["file", "load", "browse", "saved"],
+              predicate: () => LocalFiles.isActive(),
+              perform: () => LocalFiles.setDialog("open"),
+            },
+            {
+              label: "Save as…",
+              category: DEFAULT_CATEGORIES.app,
+              icon: copyIcon,
+              keywords: ["file", "duplicate", "copy", "name"],
+              predicate: () => LocalFiles.isActive(),
+              perform: () => LocalFiles.setDialog("saveAs"),
+            },
+            {
+              label: "Version history",
+              category: DEFAULT_CATEGORIES.app,
+              icon: historyIcon,
+              keywords: ["file", "versions", "restore", "backup", "revert"],
+              predicate: () =>
+                LocalFiles.isActive() && !!LocalFiles.state.currentName,
+              perform: () => LocalFiles.setDialog("history"),
+            },
             {
               label: t("labels.liveCollaboration"),
               category: DEFAULT_CATEGORIES.app,

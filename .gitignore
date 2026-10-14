@@ -28,3 +28,6 @@ dev-dist
 html
 meta*.json
 .claude
+
+# local canvases saved by the dev server (excalidraw-app/localFiles)
+/canvases
