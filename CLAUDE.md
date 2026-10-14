@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Run all commands from the repo root unless noted. Package manager is **yarn 1.x** (Node >= 18).
 
+**Nix:** Node 22 + Yarn come from `flake.nix` (loaded by direnv via `.envrc`). Outside an activated shell, prefix commands: `nix develop --command yarn test:typecheck`. Don't install node/yarn globally.
+
 ```bash
 yarn start              # run the web app (excalidraw.com) in dev on Vite
 yarn test:typecheck     # tsc, no emit — typechecks the whole monorepo
@@ -77,9 +79,18 @@ Editor commands (anything triggered by a menu item, shortcut, or context menu) a
 
 Wraps the `<Excalidraw>` component and adds: collaboration (`collab/`), shareable encrypted links (`share/`, `data/`), local-first persistence (IndexedDB autosave), PWA, and Sentry. State glue uses **jotai** (`app-jotai.ts`; the library has its own `editor-jotai.ts`).
 
+**Local files (fork-specific):** `excalidraw-app/localFiles/` gives desktop-style autosave, open (Ctrl+O), save-as (Ctrl+S) and version history. `vitePlugin.ts` serves `/api/local-files/*` over `<repo>/canvases/` (gitignored; override with `EXCALIDRAW_CANVAS_DIR`). Metadata, history and trash are kept in `canvases/.excalidraw-local/`. The client controller is `LocalFiles.ts` (a jotai atom). **This only works under `yarn start`**, because production builds have no backend.
+
 ## Conventions
 
 - TypeScript everywhere; `strict` is on. Prefer immutable data (`const`, `readonly`) and allocation-free / RAM-over-CPU implementations on hot paths (rendering, collision, geometry).
 - Functional React components with hooks; CSS via `.scss` modules colocated with components. PascalCase components/types, camelCase values, ALL_CAPS constants.
 - When writing math-related code, reference `packages/math/src/types.ts` and use `Point`, not `{ x, y }`.
 - Tests are vitest + jsdom + `vitest-canvas-mock`, colocated as `*.test.ts(x)` or under `__tests__/`. Many tests rely on snapshots — run `yarn test:update` after intentional output changes and review the diff.
+
+## Gotchas
+
+- This is a personal fork used for prototyping. Several upstream UI pieces were removed on purpose (hand tool, zoom controls, hint viewer, comments/presentation sidebar tabs), so don't restore them.
+- Known upstream failure: `packages/element/src/__tests__/transform.test.ts` › "…linear elements have single point" fails its snapshot on clean master. It isn't caused by local changes.
+- Adding an `appState` field breaks the `checkpoint()` snapshots (history/regression/contextmenu/export tests). Update them and check that the diff contains only the new field.
+- `.direnv/` holds a cached copy of the repo, and `vitest.config.mts` excludes it. Keep that exclude, or every test is discovered twice.
