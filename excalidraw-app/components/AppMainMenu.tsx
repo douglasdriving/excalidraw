@@ -57,7 +57,6 @@ export const AppMainMenu: React.FC<{
         Version history
       </MainMenu.Item>
       <MainMenu.Separator />
-      <MainMenu.DefaultItems.Export />
       <MainMenu.DefaultItems.SaveAsImage />
       <MainMenu.DefaultItems.CommandPalette className="highlighted" />
       <MainMenu.DefaultItems.SearchMenu />

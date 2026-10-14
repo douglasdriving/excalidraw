@@ -18,109 +18,57 @@
   }
 
   // ---------------------------------------------------------------------------
-  // status pill (top right)
+  // error indicator (top right, only shown when saving is broken)
   // ---------------------------------------------------------------------------
 
   .local-files-pill {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
     height: var(--lg-button-size, 2.25rem);
     padding: 0 4px 0 10px;
     border-radius: var(--border-radius-lg, 8px);
-    background: var(--island-bg-color);
-    box-shadow: var(--shadow-island);
+    background: var(--lf-error-bg);
+    box-shadow: 0 0 0 1px var(--lf-error);
+    color: var(--lf-error);
     font-size: 0.8125rem;
-    color: var(--text-primary-color);
     pointer-events: all;
-    transition: background-color 0.2s, box-shadow 0.2s;
     max-width: 46vw;
 
-    &__status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    &__status-icon {
-      display: flex;
+    &__icon svg {
+      display: block;
       width: 16px;
       height: 16px;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      svg {
-        width: 16px;
-        height: 16px;
-      }
-    }
-
-    &__dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--lf-muted);
     }
 
     &__name {
-      border: 0;
-      background: none;
-      padding: 2px 4px;
-      border-radius: 4px;
-      font: inherit;
       font-weight: 600;
-      color: inherit;
-      cursor: text;
+      color: var(--text-primary-color);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 18rem;
-
-      &:hover:not(:disabled) {
-        background: var(--button-hover-bg, rgba(0, 0, 0, 0.06));
-      }
-      &:disabled {
-        cursor: default;
-      }
+      max-width: 14rem;
     }
 
     &__text {
-      color: var(--lf-muted);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-right: 4px;
     }
 
-    &__rename {
-      position: relative;
+    &__retry {
+      height: 28px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 6px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
 
-      input {
-        font: inherit;
-        font-weight: 600;
-        width: 12rem;
-        padding: 2px 4px;
-        border-radius: 4px;
-        border: 1px solid var(--color-primary);
-        background: var(--input-bg-color, transparent);
-        color: inherit;
-        outline: none;
+      &:hover {
+        background: var(--button-hover-bg, rgba(0, 0, 0, 0.06));
       }
-    }
-
-    &__rename-error {
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0;
-      padding: 4px 8px;
-      border-radius: 4px;
-      white-space: nowrap;
-      background: var(--lf-error-bg);
-      color: var(--lf-error);
-      box-shadow: var(--shadow-island);
     }
 
     &__error-detail {
@@ -136,65 +84,6 @@
       font-size: 0.75rem;
       line-height: 1.4;
       word-break: break-word;
-    }
-
-    &__action {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border: 0;
-      border-radius: 6px;
-      background: none;
-      color: inherit;
-      cursor: pointer;
-
-      svg {
-        width: 18px;
-        height: 18px;
-      }
-
-      &:hover:not(:disabled) {
-        background: var(--button-hover-bg, rgba(0, 0, 0, 0.06));
-      }
-      &:disabled {
-        opacity: 0.35;
-        cursor: default;
-      }
-
-      &--text {
-        width: auto;
-        padding: 0 8px;
-        font: inherit;
-        font-weight: 600;
-        color: var(--lf-error);
-      }
-    }
-
-    &--ok .local-files-pill__status-icon {
-      color: var(--lf-ok);
-    }
-    &--pending {
-      .local-files-pill__dot {
-        background: var(--lf-pending);
-        animation: local-files-pulse 1.2s ease-in-out infinite;
-      }
-      .local-files-pill__text {
-        color: var(--lf-pending);
-      }
-    }
-    &--busy .local-files-pill__text {
-      color: var(--color-primary);
-    }
-    &--error {
-      background: var(--lf-error-bg);
-      box-shadow: 0 0 0 1px var(--lf-error);
-
-      .local-files-pill__status-icon,
-      .local-files-pill__text {
-        color: var(--lf-error);
-      }
     }
   }
 
@@ -426,8 +315,6 @@
       top: 4px;
       right: 4px;
       display: flex;
-      opacity: 0;
-      transition: opacity 0.15s;
 
       button {
         display: flex;
@@ -449,15 +336,14 @@
         &:hover {
           background: var(--button-hover-bg, rgba(0, 0, 0, 0.06));
         }
-        &:last-child:hover {
+        &.local-files-card__delete {
           color: var(--lf-error);
+
+          &:hover {
+            background: var(--lf-error-bg);
+          }
         }
       }
-    }
-
-    &:hover &__actions,
-    &:focus-within &__actions {
-      opacity: 1;
     }
 
     &__rename input {
@@ -601,16 +487,6 @@
         margin: 6px 0 0;
       }
     }
-  }
-}
-
-@keyframes local-files-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
   }
 }
 

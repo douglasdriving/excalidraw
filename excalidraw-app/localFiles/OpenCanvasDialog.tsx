@@ -205,6 +205,7 @@ const CanvasCard = ({
               </button>
               <button
                 type="button"
+                className="local-files-card__delete"
                 title="Delete"
                 aria-label={`Delete ${file.name}`}
                 onClick={(event) => {
