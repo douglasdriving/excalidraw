@@ -124,6 +124,22 @@ describe("local files store", () => {
     expect(await fs.readdir(trashedTo)).toContain("Final.excalidraw");
   });
 
+  it("tracks recently opened canvases through renames and deletes", async () => {
+    await store.create({ name: "A", content: scene("a") });
+    await store.create({ name: "B", content: scene("b") });
+    await store.create({ name: "C", content: scene("c") });
+    await store.setLastOpened({ name: "A" });
+    expect((await store.list()).recent).toEqual(["A", "C", "B"]);
+
+    await store.rename({ from: "C", to: "Z" });
+    expect((await store.list()).recent).toEqual(["A", "Z", "B"]);
+
+    await store.remove({ name: "A" });
+    const listing = await store.list();
+    expect(listing.recent).toEqual(["Z", "B"]);
+    expect(listing.lastOpened).toBeNull();
+  });
+
   it("rejects names that escape the folder", async () => {
     await expect(store.read("../secrets")).rejects.toMatchObject({
       status: 400,

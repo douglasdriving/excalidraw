@@ -53,6 +53,8 @@ export const localFilesApi = {
     dir: string;
     files: CanvasListEntry[];
     lastOpened: string | null;
+    /** canvas names, most recently opened first */
+    recent: string[];
   }> => (await request("/list")).json(),
 
   read: async (name: string): Promise<string> =>

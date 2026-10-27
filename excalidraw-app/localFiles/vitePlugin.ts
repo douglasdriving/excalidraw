@@ -3,7 +3,7 @@
 //
 // Layout on disk:
 //   <dir>/<name>.excalidraw                     the canvases
-//   <dir>/.excalidraw-local/state.json          { lastOpened }
+//   <dir>/.excalidraw-local/state.json          { lastOpened, recent }
 //   <dir>/.excalidraw-local/thumbnails/<name>.png
 //   <dir>/.excalidraw-local/history/<name>/<epochMs>.excalidraw
 //   <dir>/.excalidraw-local/trash/<epochMs> <name>/...   deleted canvases
@@ -79,19 +79,36 @@ export const createLocalFilesStore = (dir: string) => {
     await fs.rename(tmp, target);
   };
 
-  const readState = async (): Promise<{ lastOpened: string | null }> => {
+  type State = {
+    lastOpened: string | null;
+    /** canvas names, most recently opened first */
+    recent: string[];
+  };
+
+  const readState = async (): Promise<State> => {
     try {
-      return JSON.parse(await fs.readFile(statePath, "utf8"));
+      const state = JSON.parse(await fs.readFile(statePath, "utf8"));
+      return {
+        lastOpened: state.lastOpened ?? null,
+        recent: Array.isArray(state.recent) ? state.recent : [],
+      };
     } catch {
-      return { lastOpened: null };
+      return { lastOpened: null, recent: [] };
     }
   };
 
+  const writeState = async (state: State) => {
+    await writeAtomic(statePath, JSON.stringify(state, null, 2));
+  };
+
   const setLastOpened = async (name: string | null) => {
-    await writeAtomic(
-      statePath,
-      JSON.stringify({ ...(await readState()), lastOpened: name }, null, 2),
-    );
+    const state = await readState();
+    await writeState({
+      lastOpened: name,
+      recent: name
+        ? [name, ...state.recent.filter((n) => n !== name)]
+        : state.recent,
+    });
   };
 
   const listNames = async (): Promise<string[]> => {
@@ -188,12 +205,13 @@ export const createLocalFilesStore = (dir: string) => {
         }),
       );
       files.sort((a, b) => b.modified - a.modified);
-      const { lastOpened } = await readState();
+      const { lastOpened, recent } = await readState();
       return {
         dir,
         files,
         lastOpened:
           lastOpened && names.includes(lastOpened) ? lastOpened : null,
+        recent: recent.filter((name) => names.includes(name)),
       };
     },
 
@@ -255,10 +273,11 @@ export const createLocalFilesStore = (dir: string) => {
       await fs.rename(canvasPath(from), canvasPath(to));
       await moveIfExists(thumbPath(from), thumbPath(to));
       await moveIfExists(historyDir(from), historyDir(to));
-      const { lastOpened } = await readState();
-      if (lastOpened === from) {
-        await setLastOpened(to);
-      }
+      const state = await readState();
+      await writeState({
+        lastOpened: state.lastOpened === from ? to : state.lastOpened,
+        recent: state.recent.map((n) => (n === from ? to : n)),
+      });
       return { name: to };
     },
 
@@ -275,10 +294,11 @@ export const createLocalFilesStore = (dir: string) => {
       );
       await moveIfExists(thumbPath(name), path.join(bin, "thumbnail.png"));
       await moveIfExists(historyDir(name), path.join(bin, "history"));
-      const { lastOpened } = await readState();
-      if (lastOpened === name) {
-        await setLastOpened(null);
-      }
+      const state = await readState();
+      await writeState({
+        lastOpened: state.lastOpened === name ? null : state.lastOpened,
+        recent: state.recent.filter((n) => n !== name),
+      });
       return { trashedTo: bin };
     },
 
