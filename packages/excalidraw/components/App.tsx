@@ -433,6 +433,7 @@ import { isMaybeMermaidDefinition } from "../mermaid";
 import { LassoTrail } from "../lasso";
 import { EraserTrail } from "../eraser";
 import { ConnectorTrail, connectElements } from "../connector";
+import { newStampElement } from "../stamp";
 import { getShortcutKey } from "../shortcut";
 import { tryParseSpreadsheet } from "../charts";
 import { AnimationController } from "../renderer/animation";
@@ -8158,6 +8159,8 @@ class App extends React.Component<AppProps, AppState> {
         pointerDownState.lastCoords.x,
         pointerDownState.lastCoords.y,
       );
+    } else if (this.state.activeTool.type === "stamp") {
+      this.handleStampOnPointerDown(event, pointerDownState);
     } else if (
       this.state.activeTool.type !== "eraser" &&
       this.state.activeTool.type !== "connector" &&
@@ -9084,6 +9087,37 @@ class App extends React.Component<AppProps, AppState> {
     }
   };
 
+  /**
+   * Ctrl/Cmd+click opens the emoji picker; a plain click stamps the current
+   * emoji centered on the pointer. The tool stays active for more stamps.
+   */
+  private handleStampOnPointerDown = (
+    event: React.PointerEvent<HTMLElement>,
+    pointerDownState: PointerDownState,
+  ): void => {
+    if (event[KEYS.CTRL_OR_CMD]) {
+      this.setState({ openDialog: { name: "stampPicker" } });
+      return;
+    }
+
+    const { x: sceneX, y: sceneY } = pointerDownState.origin;
+    const topLayerFrame = this.getTopLayerFrameAtSceneCoords({
+      x: sceneX,
+      y: sceneY,
+    });
+
+    const element = newStampElement({
+      emoji: this.state.currentStampEmoji,
+      sceneX,
+      sceneY,
+      appState: this.state,
+      frameId: topLayerFrame ? topLayerFrame.id : null,
+    });
+
+    this.store.scheduleCapture();
+    this.insertNewElements([element]);
+  };
+
   private handleFreeDrawElementOnPointerDown = (
     event: React.PointerEvent<HTMLElement>,
     elementType: ExcalidrawFreeDrawElement["type"],
@@ -9892,6 +9926,10 @@ class App extends React.Component<AppProps, AppState> {
 
       if (this.state.activeTool.type === "connector") {
         this.handleConnector(pointerCoords);
+        return;
+      }
+
+      if (this.state.activeTool.type === "stamp") {
         return;
       }
 
@@ -11379,6 +11417,10 @@ class App extends React.Component<AppProps, AppState> {
 
       if (this.state.activeTool.type === "connector") {
         this.connectMarkedElements();
+        return;
+      }
+
+      if (this.state.activeTool.type === "stamp") {
         return;
       }
 

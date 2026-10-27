@@ -50,6 +50,7 @@ import { sidebarRightIcon } from "./icons";
 import { DefaultSidebar } from "./DefaultSidebar";
 import { TTDDialog } from "./TTDDialog/TTDDialog";
 import { Stats } from "./Stats";
+import { StampPicker } from "./StampPicker";
 import ElementLinkDialog from "./ElementLinkDialog";
 import { ErrorDialog } from "./ErrorDialog";
 import { EyeDropper, activeEyeDropperAtom } from "./EyeDropper";
@@ -544,6 +545,15 @@ const LayerUI = ({
             });
             eyeDropperState?.onSelect?.(color, event);
           }}
+        />
+      )}
+      {appState.openDialog?.name === "stampPicker" && (
+        <StampPicker
+          currentEmoji={appState.currentStampEmoji}
+          onPick={(emoji) =>
+            setAppState({ currentStampEmoji: emoji, openDialog: null })
+          }
+          onClose={() => setAppState({ openDialog: null })}
         />
       )}
       {appState.openDialog?.name === "help" && (

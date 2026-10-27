@@ -336,6 +336,7 @@ const CombinedShapeProperties = ({
     (appState.activeTool.type !== "selection" &&
       appState.activeTool.type !== "eraser" &&
       appState.activeTool.type !== "connector" &&
+      appState.activeTool.type !== "stamp" &&
       appState.activeTool.type !== "hand" &&
       appState.activeTool.type !== "laser" &&
       appState.activeTool.type !== "lasso");
@@ -1161,7 +1162,15 @@ export const ShapesSwitcher = ({
               className={clsx("Shape", { fillable })}
               key={value}
               type="radio"
-              icon={icon}
+              icon={
+                value === "stamp" ? (
+                  <span className="ToolIcon__stampEmoji">
+                    {app.state.currentStampEmoji}
+                  </span>
+                ) : (
+                  icon
+                )
+              }
               checked={activeTool.type === value}
               name="editor-current-shape"
               title={`${capitalizeString(label)} — ${shortcut}`}

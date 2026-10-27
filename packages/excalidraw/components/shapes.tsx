@@ -12,6 +12,7 @@ import {
   ImageIcon,
   EraserIcon,
   ConnectorIcon,
+  StampIcon,
   laserPointerToolIcon,
   handIcon,
 } from "./icons";
@@ -111,6 +112,14 @@ export const SHAPES = [
     icon: ConnectorIcon,
     value: "connector",
     key: KEYS.C,
+    numericKey: null,
+    fillable: false,
+    toolbar: true,
+  },
+  {
+    icon: StampIcon,
+    value: "stamp",
+    key: KEYS.M,
     numericKey: null,
     fillable: false,
     toolbar: true,

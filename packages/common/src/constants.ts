@@ -494,6 +494,7 @@ export const TOOL_TYPE = {
   image: "image",
   eraser: "eraser",
   connector: "connector",
+  stamp: "stamp",
   hand: "hand",
   frame: "frame",
   magicframe: "magicframe",

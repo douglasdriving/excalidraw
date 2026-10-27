@@ -211,6 +211,7 @@ export const AllowedExcalidrawActiveTools: Record<
   freedraw: true,
   eraser: false,
   connector: false,
+  stamp: false,
   custom: true,
   frame: true,
   embeddable: true,

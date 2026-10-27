@@ -14,6 +14,8 @@ import {
   isTestEnv,
 } from "@excalidraw/common";
 
+import { DEFAULT_STAMP_EMOJI } from "./stamp";
+
 import type { AppState, NormalizedZoomValue } from "./types";
 
 const defaultExportScale = EXPORT_SCALES.includes(devicePixelRatio)
@@ -32,6 +34,7 @@ export const getDefaultAppState = (): Omit<
     currentItemEndArrowhead: "arrow",
     currentItemFillStyle: DEFAULT_ELEMENT_PROPS.fillStyle,
     currentItemFontFamily: DEFAULT_FONT_FAMILY,
+    currentStampEmoji: DEFAULT_STAMP_EMOJI,
     currentItemFontSize: DEFAULT_FONT_SIZE,
     currentItemOpacity: DEFAULT_ELEMENT_PROPS.opacity,
     currentItemRoughness: DEFAULT_ELEMENT_PROPS.roughness,
@@ -157,6 +160,7 @@ const APP_STATE_STORAGE_CONF = (<
   currentItemEndArrowhead: { browser: true, export: false, server: false },
   currentItemFillStyle: { browser: true, export: false, server: false },
   currentItemFontFamily: { browser: true, export: false, server: false },
+  currentStampEmoji: { browser: true, export: false, server: false },
   currentItemFontSize: { browser: true, export: false, server: false },
   currentItemRoundness: {
     browser: true,

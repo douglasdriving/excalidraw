@@ -185,6 +185,11 @@ export const HelpDialog = ({ onClose }: { onClose?: () => void }) => {
               shortcuts={[KEYS.E, KEYS["0"]]}
             />
             <Shortcut label={t("toolBar.connector")} shortcuts={[KEYS.C]} />
+            <Shortcut label={t("toolBar.stamp")} shortcuts={[KEYS.M]} />
+            <Shortcut
+              label={t("helpDialog.pickStamp")}
+              shortcuts={[getShortcutKey(`CtrlOrCmd+${t("helpDialog.click")}`)]}
+            />
             <Shortcut label={t("toolBar.frame")} shortcuts={[KEYS.F]} />
             <Shortcut label={t("toolBar.laser")} shortcuts={[KEYS.K]} />
             <Shortcut

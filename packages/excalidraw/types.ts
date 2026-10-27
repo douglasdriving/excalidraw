@@ -155,6 +155,7 @@ export type ToolType =
   | "image"
   | "eraser"
   | "connector"
+  | "stamp"
   | "hand"
   | "frame"
   | "magicframe"
@@ -381,6 +382,8 @@ export interface AppState {
   currentItemStrokeVariability: StrokeVariability;
   currentItemOpacity: number;
   currentItemFontFamily: FontFamilyValues;
+  /** emoji placed by the stamp tool */
+  currentStampEmoji: string;
   currentItemFontSize: number;
   currentItemTextAlign: TextAlign;
   currentItemStartArrowhead: Arrowhead | null;
@@ -414,6 +417,7 @@ export interface AppState {
     | { name: "imageExport" | "help" | "jsonExport" }
     | { name: "ttd"; tab: "text-to-diagram" | "mermaid" }
     | { name: "commandPalette" }
+    | { name: "stampPicker" }
     | { name: "settings" }
     | { name: "elementLinkSelector"; sourceElementId: ExcalidrawElement["id"] }
     | { name: "charts"; data: Spreadsheet; rawText: string };
