@@ -45,8 +45,8 @@ const getContainersToFit = (
   return [...containers.values()];
 };
 
-/** container width / height the fit aims for */
-const TARGET_ASPECT_RATIO = 1;
+/** container width / height the fit aims for (widescreen, like the viewport) */
+const TARGET_ASPECT_RATIO = 16 / 9;
 /** wrap widths tried between the longest word and the unwrapped text */
 const WRAP_WIDTH_SAMPLES = 50;
 
@@ -92,7 +92,7 @@ const getBalancedContainerSize = (
 
 /**
  * Resizes each selected container to tightly wrap its bound text, rewrapping
- * the text so the container is roughly square. Keeps the container's center.
+ * the text so the container is roughly 16:9. Keeps the container's center.
  */
 export const actionFitContainerToText = register({
   name: "fitContainerToText",

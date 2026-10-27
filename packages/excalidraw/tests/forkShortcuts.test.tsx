@@ -102,12 +102,12 @@ describe("fork shortcuts", () => {
     };
   };
 
-  it("Alt+F rewraps long text so the container is roughly square", () => {
+  it("Alt+F rewraps long text so the container is roughly 16:9", () => {
     const words = Array.from({ length: 60 }, () => "word");
     const { fitted, label } = fitLabel(words.join(" "));
 
-    expect(fitted.width / fitted.height).toBeGreaterThan(0.75);
-    expect(fitted.width / fitted.height).toBeLessThan(1.33);
+    expect(fitted.width / fitted.height).toBeGreaterThan(1.4);
+    expect(fitted.width / fitted.height).toBeLessThan(2.2);
     // wrapped on word boundaries only
     expect(label.text.split("\n").join(" ")).toBe(words.join(" "));
   });
