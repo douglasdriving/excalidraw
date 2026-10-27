@@ -432,6 +432,7 @@ import { isOverScrollBars } from "../scene/scrollbars";
 import { isMaybeMermaidDefinition } from "../mermaid";
 import { LassoTrail } from "../lasso";
 import { EraserTrail } from "../eraser";
+import { ConnectorTrail, connectElements } from "../connector";
 import { getShortcutKey } from "../shortcut";
 import { tryParseSpreadsheet } from "../charts";
 import { AnimationController } from "../renderer/animation";
@@ -708,6 +709,7 @@ class App extends React.Component<AppProps, AppState> {
 
   laserTrails = new LaserTrails(this);
   eraserTrail = new EraserTrail(this);
+  connectorTrail = new ConnectorTrail(this);
   lassoTrail = new LassoTrail(this);
 
   onChangeEmitter = new Emitter<
@@ -2227,6 +2229,7 @@ class App extends React.Component<AppProps, AppState> {
                               this.laserTrails,
                               this.lassoTrail,
                               this.eraserTrail,
+                              this.connectorTrail,
                             ]}
                           />
                           {selectedElements.length === 1 &&
@@ -3227,6 +3230,7 @@ class App extends React.Component<AppProps, AppState> {
     this.library.destroy();
     this.laserTrails.stop();
     this.eraserTrail.stop();
+    this.connectorTrail.stop();
     this.onChangeEmitter.clear();
     this.store.onStoreIncrementEmitter.clear();
     this.store.onDurableIncrementEmitter.clear();
@@ -3491,6 +3495,13 @@ class App extends React.Component<AppProps, AppState> {
 
     if (isEraserActive(prevState) && !isEraserActive(this.state)) {
       this.eraserTrail.endPath();
+    }
+
+    if (
+      prevState.activeTool.type === "connector" &&
+      this.state.activeTool.type !== "connector"
+    ) {
+      this.connectorTrail.endPath();
     }
 
     if (prevProps.viewModeEnabled !== this.props.viewModeEnabled) {
@@ -7457,8 +7468,58 @@ class App extends React.Component<AppProps, AppState> {
       event.altKey,
     );
 
-    this.elementsPendingErasure = new Set(elementsToErase);
+    this.elementsPendingErasure = this.withConnectionsOfErasedElements(
+      new Set(elementsToErase),
+    );
     this.triggerRender();
+  };
+
+  /**
+   * Adds the arrows/lines connecting two shapes (bound at both ends) when either
+   * of those shapes is in `elementIds`, so a connection doesn't outlive the
+   * shapes it connects. Arrows with a free end are left alone.
+   */
+  private withConnectionsOfErasedElements = (
+    elementIds: ElementsPendingErasure,
+  ): ElementsPendingErasure => {
+    const elementsMap = this.scene.getNonDeletedElementsMap();
+    const next = new Set(elementIds);
+
+    for (const id of elementIds) {
+      const element = elementsMap.get(id);
+      if (!isBindableElement(element)) {
+        continue;
+      }
+      for (const { id: boundId } of element.boundElements ?? []) {
+        const arrow = elementsMap.get(boundId);
+        if (isArrowElement(arrow) && arrow.startBinding && arrow.endBinding) {
+          next.add(arrow.id);
+        }
+      }
+    }
+
+    return next;
+  };
+
+  private handleConnector = (scenePointer: { x: number; y: number }) => {
+    const prevCount = this.connectorTrail.getTouchedElements().length;
+    this.connectorTrail.addPointToPath(scenePointer.x, scenePointer.y);
+
+    const touchedElements = this.connectorTrail.getTouchedElements();
+    if (touchedElements.length !== prevCount) {
+      this.setState({ elementsToHighlight: touchedElements });
+    }
+  };
+
+  private connectMarkedElements = () => {
+    const elementsToConnect = this.connectorTrail.getElementsToConnect();
+    this.connectorTrail.endPath();
+    this.setState({ elementsToHighlight: null });
+
+    if (elementsToConnect.length > 1) {
+      this.store.scheduleCapture();
+      connectElements(elementsToConnect, this.scene, this.state);
+    }
   };
 
   // set touch moving for mobile context menu
@@ -8014,6 +8075,7 @@ class App extends React.Component<AppProps, AppState> {
       );
     } else if (
       this.state.activeTool.type !== "eraser" &&
+      this.state.activeTool.type !== "connector" &&
       this.state.activeTool.type !== "hand" &&
       this.state.activeTool.type !== "image"
     ) {
@@ -8035,6 +8097,18 @@ class App extends React.Component<AppProps, AppState> {
         pointerDownState.lastCoords.x,
         pointerDownState.lastCoords.y,
       );
+    } else if (this.state.activeTool.type === "connector") {
+      this.connectorTrail.startPath(
+        pointerDownState.lastCoords.x,
+        pointerDownState.lastCoords.y,
+      );
+      this.connectorTrail.markElementsAt(
+        pointerDownState.lastCoords.x,
+        pointerDownState.lastCoords.y,
+      );
+      this.setState({
+        elementsToHighlight: this.connectorTrail.getTouchedElements(),
+      });
     }
 
     const onPointerMove =
@@ -9731,6 +9805,11 @@ class App extends React.Component<AppProps, AppState> {
         return;
       }
 
+      if (this.state.activeTool.type === "connector") {
+        this.handleConnector(pointerCoords);
+        return;
+      }
+
       if (this.state.activeTool.type === "laser") {
         this.laserTrails.addPointToPath(pointerCoords.x, pointerCoords.y);
       }
@@ -11213,6 +11292,11 @@ class App extends React.Component<AppProps, AppState> {
       const pointerStart = this.lastPointerDownEvent;
       const pointerEnd = this.lastPointerUpEvent || this.lastPointerMoveEvent;
 
+      if (this.state.activeTool.type === "connector") {
+        this.connectMarkedElements();
+        return;
+      }
+
       if (isEraserActive(this.state) && pointerStart && pointerEnd) {
         this.eraserTrail.endPath();
 
@@ -11562,6 +11646,10 @@ class App extends React.Component<AppProps, AppState> {
 
   private eraseElements = () => {
     let didChange = false;
+
+    this.elementsPendingErasure = this.withConnectionsOfErasedElements(
+      this.elementsPendingErasure,
+    );
 
     // Binding is double accounted on both elements and if one of them is
     // deleted, the binding should be removed

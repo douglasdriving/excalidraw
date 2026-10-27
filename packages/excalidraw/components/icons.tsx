@@ -445,6 +445,20 @@ export const EraserIcon = createIcon(
   tablerIconProps,
 );
 
+// three nodes chained by lines
+export const ConnectorIcon = createIcon(
+  <g strokeWidth="1.5">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+    <path d="M4 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M16 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M10 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+    <path d="M8 6h8" />
+    <path d="M7 7.7l4 8.6" />
+    <path d="M17 7.7l-4 8.6" />
+  </g>,
+  tablerIconProps,
+);
+
 export const ZoomInIcon = createIcon(
   <path strokeWidth="1.25" d="M10 4.167v11.666M4.167 10h11.666" />,
   modifiedTablerIconProps,

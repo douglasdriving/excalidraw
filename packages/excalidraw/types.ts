@@ -154,6 +154,7 @@ export type ToolType =
   | "text"
   | "image"
   | "eraser"
+  | "connector"
   | "hand"
   | "frame"
   | "magicframe"

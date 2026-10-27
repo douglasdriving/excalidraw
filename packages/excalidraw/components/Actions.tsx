@@ -335,6 +335,7 @@ const CombinedShapeProperties = ({
     targetElements.length > 0 ||
     (appState.activeTool.type !== "selection" &&
       appState.activeTool.type !== "eraser" &&
+      appState.activeTool.type !== "connector" &&
       appState.activeTool.type !== "hand" &&
       appState.activeTool.type !== "laser" &&
       appState.activeTool.type !== "lasso");

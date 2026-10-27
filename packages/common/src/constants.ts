@@ -493,6 +493,7 @@ export const TOOL_TYPE = {
   text: "text",
   image: "image",
   eraser: "eraser",
+  connector: "connector",
   hand: "hand",
   frame: "frame",
   magicframe: "magicframe",
