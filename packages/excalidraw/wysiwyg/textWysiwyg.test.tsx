@@ -1569,6 +1569,92 @@ describe("textWysiwyg", () => {
       ).toEqual(1.25);
     });
 
+    describe("Tab to next container", () => {
+      const pressTab = (editor: HTMLTextAreaElement, shiftKey = false) => {
+        fireEvent.keyDown(editor, { key: KEYS.TAB, shiftKey });
+      };
+
+      beforeEach(() => {
+        rectangle = API.createElement({
+          type: "rectangle",
+          x: 10,
+          y: 20,
+          width: 90,
+          height: 75,
+          backgroundColor: "#ffc9c9",
+          strokeStyle: "dashed",
+        });
+        API.setElements([rectangle]);
+        API.setSelectedElements([rectangle]);
+      });
+
+      it("should create an empty copy to the right and edit it", async () => {
+        Keyboard.keyPress(KEYS.ENTER);
+        const editor = await getTextEditor();
+        updateTextEditor(editor, "first");
+        pressTab(editor);
+
+        const firstText = h.elements[1] as ExcalidrawTextElementWithContainer;
+        expect(firstText.originalText).toBe("first");
+        expect(firstText.containerId).toBe(rectangle.id);
+
+        const next = h.elements[2];
+        expect(next.type).toBe("rectangle");
+        expect(next.x).toBe(rectangle.x + rectangle.width + 20);
+        expect(next.y).toBe(rectangle.y);
+        expect(next.width).toBe(rectangle.width);
+        expect(next.height).toBe(rectangle.height);
+        expect(next.backgroundColor).toBe("#ffc9c9");
+        expect(next.strokeStyle).toBe("dashed");
+        expect(h.elements.some((el) => el.type === "arrow")).toBe(false);
+
+        expect(h.state.editingTextElement?.containerId).toBe(next.id);
+        const nextEditor = await getTextEditor();
+        updateTextEditor(nextEditor, "second");
+        Keyboard.exitTextEditor(nextEditor);
+
+        const secondText = h.elements.find(
+          (el) => el.type === "text" && el.containerId === next.id,
+        ) as ExcalidrawTextElementWithContainer;
+        expect(secondText.originalText).toBe("second");
+        expect(API.getSelectedElements().map((el) => el.id)).toEqual([next.id]);
+      });
+
+      it("should skip past shapes already to the right", async () => {
+        const blocker = API.createElement({
+          type: "ellipse",
+          x: rectangle.x + rectangle.width + 30,
+          y: rectangle.y + 10,
+          width: 50,
+          height: 50,
+        });
+        API.setElements([rectangle, blocker]);
+        API.setSelectedElements([rectangle]);
+
+        Keyboard.keyPress(KEYS.ENTER);
+        const editor = await getTextEditor();
+        updateTextEditor(editor, "first");
+        pressTab(editor);
+
+        const next = h.elements.find(
+          (el) => el.type === "rectangle" && el.id !== rectangle.id,
+        )!;
+        expect(next.x).toBe(rectangle.x + (rectangle.width + 20) * 2);
+      });
+
+      it("should keep Shift+Tab as outdent", async () => {
+        Keyboard.keyPress(KEYS.ENTER);
+        const editor = await getTextEditor();
+        updateTextEditor(editor, `${tab}hello`);
+        editor.selectionStart = editor.selectionEnd = editor.value.length;
+        pressTab(editor, true);
+
+        expect(editor.value).toBe("hello");
+        expect(h.elements.length).toBe(2);
+        expect(h.state.editingTextElement).not.toBeNull();
+      });
+    });
+
     describe("should align correctly", () => {
       let editor: HTMLTextAreaElement;
 

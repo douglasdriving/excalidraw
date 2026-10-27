@@ -215,7 +215,12 @@ export const textWysiwyg = ({
    *       is derived from `originalText`
    */
   onChange?: (nextOriginalText: string) => void;
-  onSubmit: (data: { viaKeyboard: boolean; nextOriginalText: string }) => void;
+  onSubmit: (data: {
+    viaKeyboard: boolean;
+    /** submitted with Tab from a container's text, to continue in a new one */
+    viaTab: boolean;
+    nextOriginalText: string;
+  }) => void;
   getViewportCoords: (x: number, y: number) => [number, number];
   element: ExcalidrawTextElement;
   canvas: HTMLCanvasElement;
@@ -659,6 +664,20 @@ export const textWysiwyg = ({
       submittedViaKeyboard = true;
       handleSubmit();
     } else if (
+      event.key === KEYS.TAB &&
+      !event.shiftKey &&
+      !event[KEYS.CTRL_OR_CMD] &&
+      !event.altKey &&
+      isTabToNextContainerEligible()
+    ) {
+      event.preventDefault();
+      if (event.isComposing) {
+        return;
+      }
+      submittedViaKeyboard = true;
+      submittedViaTab = true;
+      handleSubmit();
+    } else if (
       event.key === KEYS.TAB ||
       (event[KEYS.CTRL_OR_CMD] &&
         (event.code === CODES.BRACKET_LEFT ||
@@ -782,6 +801,17 @@ export const textWysiwyg = ({
   // using a state variable instead of passing it to the handleSubmit callback
   // so that we don't need to create separate a callback for event handlers
   let submittedViaKeyboard = false;
+  let submittedViaTab = false;
+
+  // Tab continues into a new box only for text inside a shape; free text and
+  // arrow labels keep Tab as indent.
+  const isTabToNextContainerEligible = () => {
+    const container = getContainerElement(
+      element,
+      app.scene.getNonDeletedElementsMap(),
+    );
+    return !!container && !isArrowElement(container);
+  };
   const handleSubmit = () => {
     // prevent double submit
     if (isDestroyed) {
@@ -834,6 +864,7 @@ export const textWysiwyg = ({
 
     onSubmit({
       viaKeyboard: submittedViaKeyboard,
+      viaTab: submittedViaTab,
       nextOriginalText: editable.value,
     });
   };

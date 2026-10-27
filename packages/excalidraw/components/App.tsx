@@ -5697,57 +5697,73 @@ class App extends React.Component<AppProps, AppState> {
           updateBoundElements(element, this.scene);
         }
       }),
-      onSubmit: withBatchedUpdates(({ viaKeyboard, nextOriginalText }) => {
-        const isDeleted = !nextOriginalText.trim();
-        updateElement(nextOriginalText, isDeleted);
+      onSubmit: withBatchedUpdates(
+        ({ viaKeyboard, viaTab, nextOriginalText }) => {
+          const isDeleted = !nextOriginalText.trim();
+          updateElement(nextOriginalText, isDeleted);
 
-        // keyboard-submit keeps focus on the edited object. For bound text, keep
-        // the container selected even if the text becomes empty and is deleted.
-        const elementIdToSelect = viaKeyboard
-          ? element.containerId || (!isDeleted ? element.id : null)
-          : null;
+          // keyboard-submit keeps focus on the edited object. For bound text, keep
+          // the container selected even if the text becomes empty and is deleted.
+          const elementIdToSelect = viaKeyboard
+            ? element.containerId || (!isDeleted ? element.id : null)
+            : null;
 
-        if (elementIdToSelect) {
-          // needed to ensure state is updated before "finalize" action
-          // that's invoked on keyboard-submit as well
-          // TODO either move this into finalize as well, or handle all state
-          // updates in one place, skipping finalize action
+          if (elementIdToSelect) {
+            // needed to ensure state is updated before "finalize" action
+            // that's invoked on keyboard-submit as well
+            // TODO either move this into finalize as well, or handle all state
+            // updates in one place, skipping finalize action
+            flushSync(() => {
+              this.setState((prevState) => ({
+                selectedElementIds: makeNextSelectedElementIds(
+                  {
+                    ...prevState.selectedElementIds,
+                    [elementIdToSelect]: true,
+                  },
+                  prevState,
+                ),
+              }));
+            });
+          }
+
+          if (isDeleted) {
+            fixBindingsAfterDeletion(this.scene.getNonDeletedElements(), [
+              element,
+            ]);
+          }
+
+          if (!isDeleted || isExistingElement) {
+            this.store.scheduleCapture();
+          }
+
           flushSync(() => {
-            this.setState((prevState) => ({
-              selectedElementIds: makeNextSelectedElementIds(
-                {
-                  ...prevState.selectedElementIds,
-                  [elementIdToSelect]: true,
-                },
-                prevState,
-              ),
-            }));
+            this.setState({
+              newElement: null,
+              editingTextElement: null,
+            });
           });
-        }
 
-        if (isDeleted) {
-          fixBindingsAfterDeletion(this.scene.getNonDeletedElements(), [
-            element,
-          ]);
-        }
+          if (this.state.activeTool.locked) {
+            setCursorForShape(this.interactiveCanvas, this.state);
+          }
 
-        if (!isDeleted || isExistingElement) {
-          this.store.scheduleCapture();
-        }
+          this.focusContainer();
 
-        flushSync(() => {
-          this.setState({
-            newElement: null,
-            editingTextElement: null,
-          });
-        });
-
-        if (this.state.activeTool.locked) {
-          setCursorForShape(this.interactiveCanvas, this.state);
-        }
-
-        this.focusContainer();
-      }),
+          const container = viaTab
+            ? getContainerElement(
+                element,
+                this.scene.getNonDeletedElementsMap(),
+              )
+            : null;
+          if (
+            container &&
+            isValidTextContainer(container) &&
+            !isArrowElement(container)
+          ) {
+            this.startTextEditingInNextContainer(container);
+          }
+        },
+      ),
       element,
       excalidrawContainer: this.excalidrawContainerRef.current,
       app: this,
@@ -5764,6 +5780,75 @@ class App extends React.Component<AppProps, AppState> {
     // do an initial update to re-initialize element position since we were
     // modifying element's x/y for sake of editor (case: syncing to remote)
     updateElement(element.originalText, false);
+  }
+
+  /**
+   * Tab while editing a shape's text: place an empty copy of the shape to its
+   * right (skipping past anything in the way) and start editing that one.
+   */
+  private startTextEditingInNextContainer(
+    container: Exclude<ExcalidrawTextContainer, ExcalidrawArrowElement>,
+  ) {
+    const GAP = 20;
+    const step = container.width + GAP;
+    const obstacles = this.scene
+      .getNonDeletedElements()
+      .filter(
+        (el) =>
+          el.id !== container.id &&
+          !isLinearElement(el) &&
+          !isFrameLikeElement(el) &&
+          !(isTextElement(el) && el.containerId),
+      )
+      .map((el) => getElementBounds(el, this.scene.getNonDeletedElementsMap()));
+    const overlaps = (x: number) =>
+      obstacles.some(
+        ([x1, y1, x2, y2]) =>
+          x < x2 &&
+          x + container.width > x1 &&
+          container.y < y2 &&
+          container.y + container.height > y1,
+      );
+
+    let x = container.x + step;
+    for (let i = 0; i < 100 && overlaps(x); i++) {
+      x += step;
+    }
+
+    const nextContainer = newElement({
+      type: container.type,
+      x,
+      y: container.y,
+      width: container.width,
+      height: container.height,
+      angle: container.angle,
+      roundness: container.roundness,
+      roughness: container.roughness,
+      backgroundColor: container.backgroundColor,
+      strokeColor: container.strokeColor,
+      strokeWidth: container.strokeWidth,
+      strokeStyle: container.strokeStyle,
+      fillStyle: container.fillStyle,
+      opacity: container.opacity,
+      frameId: container.frameId,
+    });
+    this.insertNewElement(nextContainer);
+    // startTextEditing reuses the selected element's text, so move the
+    // selection off the previous box first
+    flushSync(() => {
+      this.setState((prevState) => ({
+        selectedElementIds: makeNextSelectedElementIds(
+          { [nextContainer.id]: true },
+          prevState,
+        ),
+      }));
+    });
+
+    this.startTextEditing({
+      sceneX: nextContainer.x + nextContainer.width / 2,
+      sceneY: nextContainer.y + nextContainer.height / 2,
+      container: nextContainer as typeof container,
+    });
   }
 
   private deselectElements() {
