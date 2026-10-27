@@ -88,9 +88,15 @@ Wraps the `<Excalidraw>` component and adds: collaboration (`collab/`), shareabl
 - When writing math-related code, reference `packages/math/src/types.ts` and use `Point`, not `{ x, y }`.
 - Tests are vitest + jsdom + `vitest-canvas-mock`, colocated as `*.test.ts(x)` or under `__tests__/`. Many tests rely on snapshots — run `yarn test:update` after intentional output changes and review the diff.
 
+## Testing workflow
+
+Douglas tests UI changes interactively himself, which is much quicker than Claude driving a browser. Don't start the dev server or use browser/preview tools to verify a change unless he asks. The bar is: typecheck, lint and the vitest suite pass, with new behaviour covered by tests. Then hand it over to him to try.
+
 ## Gotchas
 
 - This is a personal fork used for prototyping. Several upstream UI pieces were removed on purpose (hand tool, zoom controls, hint viewer, comments/presentation sidebar tabs), so don't restore them.
-- Known upstream failure: `packages/element/src/__tests__/transform.test.ts` › "…linear elements have single point" fails its snapshot on clean master. It isn't caused by local changes.
+- The full suite is green on master. Treat any failure as real: don't write it off as "pre-existing" without checking it on a clean checkout.
+- Removing or adding UI shifts Radix's auto-generated ids (`radix-:r12:`) in DOM snapshots (`excalidraw.test.tsx`, `MermaidToExcalidraw.test.tsx`). If the diff is only those ids, update the snapshots.
+- The center-binding feature also applies to programmatic arrows (`convertToExcalidrawElements`): an endpoint that lands near a shape's center becomes a `center: true` binding. Snapshots in `transform.test.ts` reflect this.
 - Adding an `appState` field breaks the `checkpoint()` snapshots (history/regression/contextmenu/export tests). Update them and check that the diff contains only the new field.
-- `.direnv/` holds a cached copy of the repo, and `vitest.config.mts` excludes it. Keep that exclude, or every test is discovered twice.
+- `.direnv/` holds a cached copy of the repo, and agent sessions create git worktrees under `.claude/worktrees/`. `vitest.config.mts` excludes both, and so does `.eslintignore` (which prettier also uses), along with `canvases/`. Keep those excludes, or tests are discovered twice and lint/prettier scan non-source files.

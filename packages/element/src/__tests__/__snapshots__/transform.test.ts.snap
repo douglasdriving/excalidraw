@@ -1564,10 +1564,11 @@ exports[`Test Transform > should transform the elements correctly when linear el
   "elbowed": false,
   "endArrowhead": "arrow",
   "endBinding": {
+    "center": true,
     "elementId": "B",
     "fixedPoint": [
-      0.46387050630528887,
-      0.48466257668711654,
+      0.5001,
+      0.5001,
     ],
     "mode": "orbit",
   },

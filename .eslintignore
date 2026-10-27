@@ -9,3 +9,7 @@ packages/excalidraw/types
 examples/**/public
 dev-dist
 coverage
+# fork-local, not source: nix-direnv cache, local-files canvases, agent worktrees
+.direnv/
+canvases/
+.claude/
