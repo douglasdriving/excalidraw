@@ -63,6 +63,7 @@ import {
   toValidURL,
   getGridPoint,
   getLineHeight,
+  getFontFamilyString,
   debounce,
   distance,
   getFontString,
@@ -134,6 +135,7 @@ import {
   newLinearElement,
   newTextElement,
   refreshTextDimensions,
+  getTextWidth,
   deepCopyElement,
   duplicateElements,
   hasBoundTextElement,
@@ -174,6 +176,7 @@ import {
   getContainerElement,
   isValidTextContainer,
   redrawTextBoundingBox,
+  updateOriginalContainerCache,
   hasBoundingBox,
   getCommonFrameId,
   getFrameChildren,
@@ -333,6 +336,7 @@ import { actionWrapTextInContainer } from "../actions/actionBoundText";
 import { actionToggleHandTool } from "../actions/actionCanvas";
 import { actionPaste } from "../actions/actionClipboard";
 import { actionCopyElementLink } from "../actions/actionElementLink";
+import { fitContainerToText } from "../actions/actionFitContainerToText";
 import { actionUnlockAllElements } from "../actions/actionElementLock";
 import {
   actionRemoveAllElementsFromFrame,
@@ -504,6 +508,14 @@ import type {
 } from "../types";
 import type { RoughCanvas } from "roughjs/bin/canvas";
 import type { Action, ActionResult } from "../actions/types";
+
+/** free-standing text wraps once a line is wider than this many characters */
+const TEXT_AUTO_WRAP_CHARS = 60;
+/** ...but never wraps narrower than this, even near the viewport's edge */
+const TEXT_AUTO_WRAP_MIN_CHARS = 20;
+/** ...or once it would come closer than this (screen px) to the viewport's
+ * right edge */
+const TEXT_AUTO_WRAP_VIEWPORT_MARGIN = 40;
 
 const AppContext = React.createContext<AppClassProperties>(null!);
 const AppPropsContext = React.createContext<AppProps>(null!);
@@ -2425,6 +2437,7 @@ class App extends React.Component<AppProps, AppState> {
                             />
                           )}
                           {this.renderFrameNames()}
+                          {this.renderStampPreview()}
                           {this.state.activeLockedId && (
                             <UnlockPopup
                               app={this}
@@ -4633,8 +4646,48 @@ class App extends React.Component<AppProps, AppState> {
     (event: MouseEvent) => {
       this.lastViewportPosition.x = event.clientX;
       this.lastViewportPosition.y = event.clientY;
+      this.updateStampPreview(event);
     },
   );
+
+  private stampPreviewRef = React.createRef<HTMLDivElement>();
+
+  /** moves the stamp tool's see-through preview to the pointer; hidden while
+   * the pointer is off the canvas */
+  private updateStampPreview(event: MouseEvent) {
+    const preview = this.stampPreviewRef.current;
+    if (!preview) {
+      return;
+    }
+    const overCanvas = event.target === this.interactiveCanvas;
+    preview.style.display = overCanvas ? "" : "none";
+    preview.style.transform = `translate(${
+      event.clientX - this.state.offsetLeft
+    }px, ${event.clientY - this.state.offsetTop}px) translate(-50%, -50%)`;
+  }
+
+  private renderStampPreview() {
+    if (this.state.activeTool.type !== "stamp") {
+      return null;
+    }
+    return (
+      <div
+        ref={this.stampPreviewRef}
+        className="excalidraw__stampPreview"
+        aria-hidden
+        style={{
+          display: "none",
+          fontSize: this.state.currentStampSize,
+          fontFamily: getFontFamilyString({
+            fontFamily: this.state.currentItemFontFamily,
+          }),
+          lineHeight: getLineHeight(this.state.currentItemFontFamily),
+        }}
+      >
+        {this.state.currentStampEmoji}
+      </div>
+    );
+  }
 
   public getEditorUIOffsets = (): Offsets => {
     const toolbarBottom =
@@ -5037,6 +5090,10 @@ class App extends React.Component<AppProps, AppState> {
 
           event.stopPropagation();
 
+          return;
+        } else if (event.key === KEYS.W) {
+          this.setActiveTool({ type: "lasso" });
+          event.stopPropagation();
           return;
         } else if (event.key === KEYS.Q) {
           this.toggleLock("keyboard");
@@ -5638,6 +5695,19 @@ class App extends React.Component<AppProps, AppState> {
     gesture.initialScale = null;
   });
 
+  /** the edited text's container, unless it's an arrow */
+  private getEditedTextContainer(textElementId: ExcalidrawElement["id"]) {
+    const elementsMap = this.scene.getNonDeletedElementsMap();
+    const textElement = elementsMap.get(textElementId);
+    if (!textElement || !isTextElement(textElement)) {
+      return null;
+    }
+    const container = getContainerElement(textElement, elementsMap);
+    return container && !isArrowElement(container)
+      ? { container, textElement }
+      : null;
+  }
+
   private handleTextWysiwyg(
     element: ExcalidrawTextElement,
     {
@@ -5654,18 +5724,77 @@ class App extends React.Component<AppProps, AppState> {
   ) {
     const elementsMap = this.scene.getElementsMapIncludingDeleted();
 
+    // the container's size when editing started, which it goes back to when
+    // all its text is deleted
+    // (copied, since the container is mutated in place)
+    const initialContainer = element.containerId
+      ? elementsMap.get(element.containerId)
+      : null;
+    const initialContainerSize = initialContainer && {
+      width: initialContainer.width,
+      height: initialContainer.height,
+    };
+
+    // set once this edit switched a free-standing text to fixed-width wrapping,
+    // so it can switch back if the text gets short again
+    let autoWrapped = false;
+
+    /** fixed width to wrap at, or null to leave the text auto-resizing */
+    const getAutoWrapWidth = (
+      textElement: ExcalidrawTextElement,
+      nextOriginalText: string,
+    ) => {
+      if (textElement.containerId) {
+        return null;
+      }
+      if (!textElement.autoResize && !autoWrapped) {
+        // the user set this width themselves
+        return null;
+      }
+      const font = getFontString(textElement);
+      const naturalWidth = Math.max(
+        ...nextOriginalText.split("\n").map((line) => getTextWidth(line, font)),
+      );
+      // the editor's width is 0 until it's been measured (and in tests)
+      const viewportRightEdge = this.state.width
+        ? -this.state.scrollX + this.state.width / this.state.zoom.value
+        : Infinity;
+      const maxWidth = Math.max(
+        getTextWidth("n".repeat(TEXT_AUTO_WRAP_MIN_CHARS), font),
+        Math.min(
+          getTextWidth("n".repeat(TEXT_AUTO_WRAP_CHARS), font),
+          viewportRightEdge -
+            textElement.x -
+            TEXT_AUTO_WRAP_VIEWPORT_MARGIN / this.state.zoom.value,
+        ),
+      );
+      return naturalWidth > maxWidth ? maxWidth : null;
+    };
+
     const updateElement = (nextOriginalText: string, isDeleted: boolean) => {
       this.scene.replaceAllElements([
         // Not sure why we include deleted elements as well hence using deleted elements map
         ...this.scene.getElementsIncludingDeleted().map((_element) => {
           if (_element.id === element.id && isTextElement(_element)) {
-            return newElementWith(_element, {
+            let textElement = _element;
+            const wrapWidth = getAutoWrapWidth(textElement, nextOriginalText);
+            if (wrapWidth !== null) {
+              autoWrapped = true;
+              textElement = newElementWith(textElement, {
+                autoResize: false,
+                width: wrapWidth,
+              });
+            } else if (autoWrapped) {
+              autoWrapped = false;
+              textElement = newElementWith(textElement, { autoResize: true });
+            }
+            return newElementWith(textElement, {
               originalText: nextOriginalText,
-              isDeleted: isDeleted ?? _element.isDeleted,
+              isDeleted: isDeleted ?? textElement.isDeleted,
               // returns (wrapped) text and new dimensions
               ...refreshTextDimensions(
-                _element,
-                getContainerElement(_element, elementsMap),
+                textElement,
+                getContainerElement(textElement, elementsMap),
                 elementsMap,
                 nextOriginalText,
               ),
@@ -5693,9 +5822,43 @@ class App extends React.Component<AppProps, AppState> {
         ];
       },
       onChange: withBatchedUpdates((nextOriginalText) => {
+        // keep the container fitted to the text as you type, growing from its
+        // center. The center is taken before the update, because the editor
+        // grows a too-short container downwards while it updates.
+        const before = this.getEditedTextContainer(element.id);
+        const center = before && {
+          x: before.container.x + before.container.width / 2,
+          y: before.container.y + before.container.height / 2,
+        };
         updateElement(nextOriginalText, false);
         if (isNonDeletedElement(element)) {
           updateBoundElements(element, this.scene);
+        }
+        const after = this.getEditedTextContainer(element.id);
+        if (after && center) {
+          if (nextOriginalText.trim()) {
+            fitContainerToText(
+              after.container,
+              after.textElement,
+              this.scene,
+              center,
+            );
+          } else if (initialContainerSize) {
+            const { width, height } = initialContainerSize;
+            this.scene.mutateElement(after.container, {
+              x: center.x - width / 2,
+              y: center.y - height / 2,
+              width,
+              height,
+            });
+            updateOriginalContainerCache(after.container.id, height);
+            redrawTextBoundingBox(
+              after.textElement,
+              after.container,
+              this.scene,
+            );
+            updateBoundElements(after.container, this.scene);
+          }
         }
       }),
       onSubmit: withBatchedUpdates(
@@ -9088,18 +9251,13 @@ class App extends React.Component<AppProps, AppState> {
   };
 
   /**
-   * Ctrl/Cmd+click opens the emoji picker; a plain click stamps the current
-   * emoji centered on the pointer. The tool stays active for more stamps.
+   * A click stamps the current emoji centered on the pointer. The tool stays
+   * active for more stamps.
    */
   private handleStampOnPointerDown = (
     event: React.PointerEvent<HTMLElement>,
     pointerDownState: PointerDownState,
   ): void => {
-    if (event[KEYS.CTRL_OR_CMD]) {
-      this.setState({ openDialog: { name: "stampPicker" } });
-      return;
-    }
-
     const { x: sceneX, y: sceneY } = pointerDownState.origin;
     const topLayerFrame = this.getTopLayerFrameAtSceneCoords({
       x: sceneX,

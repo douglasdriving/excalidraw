@@ -25,6 +25,7 @@ export type ShortcutName =
       | "bringToFront"
       | "copyAsPng"
       | "fitContainerToText"
+      | "arrangeSelection"
       | "group"
       | "ungroup"
       | "gridMode"
@@ -83,6 +84,7 @@ const shortcutMap: Record<ShortcutName, string[]> = {
   sendToBack: [getShortcutKey("Alt+Shift+Down")],
   bringToFront: [getShortcutKey("Alt+Shift+Up")],
   fitContainerToText: [getShortcutKey("Alt+F")],
+  arrangeSelection: [getShortcutKey("Alt+A")],
   copyAsPng: [getShortcutKey("Shift+Alt+C")],
   group: [getShortcutKey("CtrlOrCmd+G")],
   ungroup: [getShortcutKey("CtrlOrCmd+Shift+G")],

@@ -6,7 +6,12 @@ import {
   getElementPointsCoords,
   getLineHeightInPx,
 } from "@excalidraw/element";
-import { cropElement } from "@excalidraw/element";
+import {
+  cropElement,
+  getBoundTextElement,
+  redrawTextBoundingBox,
+  updateOriginalContainerCache,
+} from "@excalidraw/element";
 import {
   getTransformHandles,
   getTransformHandlesFromCoords,
@@ -560,9 +565,41 @@ export class UI {
     return proxy(origElement);
   }
 
+  /**
+   * Sets a text container's geometry and lays its text out again, e.g. to undo
+   * the fit-to-text that typing into it does.
+   */
+  static setContainerSize(
+    element: ExcalidrawElement,
+    geometry: { x: number; y: number; width: number; height: number },
+  ) {
+    const container = API.getElement(element);
+    act(() => {
+      h.app.scene.mutateElement(container, geometry);
+      updateOriginalContainerCache(container.id, geometry.height);
+      const boundText = getBoundTextElement(
+        container,
+        h.app.scene.getNonDeletedElementsMap(),
+      );
+      if (boundText) {
+        redrawTextBoundingBox(boundText, container, h.app.scene);
+      }
+    });
+  }
+
+  /**
+   * `keepContainerSize`: typing into a shape fits the shape to its text (a
+   * fork feature). Tests about something else can put the shape back to the
+   * size it had before typing.
+   */
   static async editText<
     T extends ExcalidrawTextElement | ExcalidrawTextContainer,
-  >(element: T, text: string) {
+  >(
+    element: T,
+    text: string,
+    { keepContainerSize = false }: { keepContainerSize?: boolean } = {},
+  ) {
+    const { x, y, width, height } = API.getElement(element);
     const openedEditor =
       document.querySelector<HTMLTextAreaElement>(TEXT_EDITOR_SELECTOR);
 
@@ -580,6 +617,14 @@ export class UI {
     act(() => {
       editor.blur();
     });
+
+    if (
+      keepContainerSize &&
+      !isTextElement(element) &&
+      !isLinearElement(element)
+    ) {
+      UI.setContainerSize(element, { x, y, width, height });
+    }
 
     return isTextElement(element)
       ? element

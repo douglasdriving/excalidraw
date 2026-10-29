@@ -8,7 +8,8 @@ import type { ExcalidrawTextElement } from "@excalidraw/element/types";
 import { Excalidraw } from "../index";
 import {
   DEFAULT_STAMP_EMOJI,
-  STAMP_SCREEN_FONT_SIZE,
+  DEFAULT_STAMP_SIZE,
+  STAMP_SIZES,
   loadStampEmojis,
   searchStampEmojis,
 } from "../stamp";
@@ -16,7 +17,6 @@ import {
 import { API } from "./helpers/api";
 import { Keyboard, Pointer, UI } from "./helpers/ui";
 import {
-  act,
   fireEvent,
   render,
   screen,
@@ -34,7 +34,7 @@ const stamps = () =>
   );
 
 const searchInput = () =>
-  document.querySelector(".StampPicker input") as HTMLInputElement;
+  document.querySelector(".StampPanel .ExcTextField input") as HTMLInputElement;
 
 describe("emoji search", () => {
   it("finds emoji by label and tag prefixes, label matches first", async () => {
@@ -85,7 +85,7 @@ describe("stamp tool", () => {
     const [first, second] = stamps();
     expect(stamps()).toHaveLength(2);
     expect(first.text).toBe(DEFAULT_STAMP_EMOJI);
-    expect(first.fontSize).toBe(STAMP_SCREEN_FONT_SIZE);
+    expect(first.fontSize).toBe(DEFAULT_STAMP_SIZE);
     expect(first.x + first.width / 2).toBeCloseTo(100);
     expect(first.y + first.height / 2).toBeCloseTo(100);
     expect(second.x + second.width / 2).toBeCloseTo(300);
@@ -97,7 +97,7 @@ describe("stamp tool", () => {
     API.setAppState({ zoom: { value: 2 as any } });
     UI.clickTool("stamp");
     mouse.clickAt(100, 100);
-    expect(stamps()[0].fontSize).toBe(STAMP_SCREEN_FONT_SIZE / 2);
+    expect(stamps()[0].fontSize).toBe(DEFAULT_STAMP_SIZE / 2);
   });
 
   it("each stamp is one undo step", () => {
@@ -110,26 +110,19 @@ describe("stamp tool", () => {
     expect(stamps()).toHaveLength(1);
   });
 
-  it("ctrl+click opens the picker; searching and Enter picks the emoji", async () => {
+  it("shows the stamp panel; searching and Enter picks the emoji", async () => {
     await withExcalidrawDimensions({ width: 1000, height: 1000 }, async () => {
       UI.clickTool("stamp");
-
-      Keyboard.withModifierKeys({ ctrl: true }, () => {
-        mouse.clickAt(100, 100);
-      });
-      expect(stamps()).toHaveLength(0);
-      expect(h.state.openDialog).toEqual({ name: "stampPicker" });
 
       await waitFor(() => expect(searchInput()).not.toBeNull());
       fireEvent.change(searchInput(), { target: { value: "red apple" } });
       await waitFor(() =>
         expect(
-          document.querySelector(".StampPicker__emoji--active")?.textContent,
+          document.querySelector(".StampPanel__emoji--active")?.textContent,
         ).toBe("🍎"),
       );
       fireEvent.keyDown(searchInput(), { key: KEYS.ENTER });
 
-      expect(h.state.openDialog).toBe(null);
       expect(h.state.currentStampEmoji).toBe("🍎");
       expect(h.state.activeTool.type).toBe("stamp");
 
@@ -138,11 +131,8 @@ describe("stamp tool", () => {
     });
   });
 
-  it("clicking an emoji in the picker picks it", async () => {
+  it("clicking an emoji in the panel picks it", async () => {
     UI.clickTool("stamp");
-    act(() => {
-      h.setState({ openDialog: { name: "stampPicker" } });
-    });
 
     fireEvent.change(await waitFor(() => searchInput()), {
       target: { value: "rocket" },
@@ -151,30 +141,37 @@ describe("stamp tool", () => {
     fireEvent.click(rocket);
 
     expect(h.state.currentStampEmoji).toBe("🚀");
-    expect(h.state.openDialog).toBe(null);
+    expect(h.state.activeTool.type).toBe("stamp");
+  });
+
+  it("the panel's size buttons set the stamp size", async () => {
+    UI.clickTool("stamp");
+    fireEvent.click(await screen.findByTestId("stampSize-large"));
+    expect(h.state.currentStampSize).toBe(STAMP_SIZES.lg);
+
+    mouse.clickAt(100, 100);
+    expect(stamps()[0].fontSize).toBe(STAMP_SIZES.lg);
   });
 
   it("arrow keys move the highlighted emoji", async () => {
-    act(() => {
-      h.setState({ openDialog: { name: "stampPicker" } });
-    });
+    UI.clickTool("stamp");
     await waitFor(() =>
       expect(
-        document.querySelector(".StampPicker__emoji--active")?.textContent,
+        document.querySelector(".StampPanel__emoji--active")?.textContent,
       ).toBe(DEFAULT_STAMP_EMOJI),
     );
 
-    const options = () => [...document.querySelectorAll(".StampPicker__emoji")];
+    const options = () => [...document.querySelectorAll(".StampPanel__emoji")];
     const activeIndex = () =>
       options().findIndex((el) =>
-        el.classList.contains("StampPicker__emoji--active"),
+        el.classList.contains("StampPanel__emoji--active"),
       );
     const start = activeIndex();
 
     fireEvent.keyDown(searchInput(), { key: KEYS.ARROW_RIGHT });
     expect(activeIndex()).toBe(start + 1);
     fireEvent.keyDown(searchInput(), { key: KEYS.ARROW_DOWN });
-    expect(activeIndex()).toBe(start + 11);
+    expect(activeIndex()).toBe(start + 8);
     fireEvent.keyDown(searchInput(), { key: KEYS.ARROW_UP });
     fireEvent.keyDown(searchInput(), { key: KEYS.ARROW_LEFT });
     expect(activeIndex()).toBe(start);

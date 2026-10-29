@@ -14,6 +14,8 @@ import {
   wrapText,
 } from "@excalidraw/element";
 
+import type { Scene } from "@excalidraw/element";
+
 import type {
   ElementsMap,
   ExcalidrawElement,
@@ -91,6 +93,37 @@ const getBalancedContainerSize = (
 };
 
 /**
+ * Resizes the container to tightly wrap its bound text, rewrapping the text
+ * so the container is roughly 16:9. Keeps the container's center, or puts
+ * it at `center` if given. Also runs on every edit of the text, so a box
+ * grows to fit as you type.
+ */
+export const fitContainerToText = (
+  container: ExcalidrawTextContainer,
+  textElement: ExcalidrawTextElement,
+  scene: Scene,
+  center: { x: number; y: number } = {
+    x: container.x + container.width / 2,
+    y: container.y + container.height / 2,
+  },
+) => {
+  if (!textElement.originalText.trim()) {
+    return;
+  }
+  const { width, height } = getBalancedContainerSize(container, textElement);
+
+  scene.mutateElement(container, {
+    x: center.x - width / 2,
+    y: center.y - height / 2,
+    width,
+    height,
+  });
+  updateOriginalContainerCache(container.id, height);
+  redrawTextBoundingBox(textElement, container, scene);
+  updateBoundElements(container, scene);
+};
+
+/**
  * Resizes each selected container to tightly wrap its bound text, rewrapping
  * the text so the container is roughly 16:9. Keeps the container's center.
  */
@@ -116,24 +149,11 @@ export const actionFitContainerToText = register({
     }
 
     for (const container of containers) {
-      const textElement = getBoundTextElement(container, elementsMap)!;
-      if (!textElement.originalText.trim()) {
-        continue;
-      }
-      const { width, height } = getBalancedContainerSize(
+      fitContainerToText(
         container,
-        textElement,
+        getBoundTextElement(container, elementsMap)!,
+        app.scene,
       );
-
-      app.scene.mutateElement(container, {
-        x: container.x + (container.width - width) / 2,
-        y: container.y + (container.height - height) / 2,
-        width,
-        height,
-      });
-      updateOriginalContainerCache(container.id, height);
-      redrawTextBoundingBox(textElement, container, app.scene);
-      updateBoundElements(container, app.scene);
     }
 
     return {

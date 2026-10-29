@@ -151,6 +151,7 @@ export const HelpDialog = ({ onClose }: { onClose?: () => void }) => {
               label={t("toolBar.selection")}
               shortcuts={[KEYS.V, KEYS["1"]]}
             />
+            <Shortcut label={t("toolBar.lasso")} shortcuts={[KEYS.W]} />
             <Shortcut
               label={t("toolBar.rectangle")}
               shortcuts={[KEYS.R, KEYS["2"]]}
@@ -186,10 +187,6 @@ export const HelpDialog = ({ onClose }: { onClose?: () => void }) => {
             />
             <Shortcut label={t("toolBar.connector")} shortcuts={[KEYS.C]} />
             <Shortcut label={t("toolBar.stamp")} shortcuts={[KEYS.M]} />
-            <Shortcut
-              label={t("helpDialog.pickStamp")}
-              shortcuts={[getShortcutKey(`CtrlOrCmd+${t("helpDialog.click")}`)]}
-            />
             <Shortcut label={t("toolBar.frame")} shortcuts={[KEYS.F]} />
             <Shortcut label={t("toolBar.laser")} shortcuts={[KEYS.K]} />
             <Shortcut
@@ -434,6 +431,10 @@ export const HelpDialog = ({ onClose }: { onClose?: () => void }) => {
             <Shortcut
               label={t("labels.fitContainerToText")}
               shortcuts={[getShortcutKey("Alt+F")]}
+            />
+            <Shortcut
+              label={t("labels.arrangeSelection")}
+              shortcuts={[getShortcutKey("Alt+A")]}
             />
             <Shortcut
               label={t("labels.alignTop")}

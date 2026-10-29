@@ -384,6 +384,8 @@ export interface AppState {
   currentItemFontFamily: FontFamilyValues;
   /** emoji placed by the stamp tool */
   currentStampEmoji: string;
+  /** on-screen font size (px) of new stamps, see STAMP_SIZES */
+  currentStampSize: number;
   currentItemFontSize: number;
   currentItemTextAlign: TextAlign;
   currentItemStartArrowhead: Arrowhead | null;
@@ -417,7 +419,6 @@ export interface AppState {
     | { name: "imageExport" | "help" | "jsonExport" }
     | { name: "ttd"; tab: "text-to-diagram" | "mermaid" }
     | { name: "commandPalette" }
-    | { name: "stampPicker" }
     | { name: "settings" }
     | { name: "elementLinkSelector"; sourceElementId: ExcalidrawElement["id"] }
     | { name: "charts"; data: Spreadsheet; rawText: string };

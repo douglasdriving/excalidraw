@@ -840,7 +840,9 @@ describe("multiple selection", () => {
       width: 100,
       height: 80,
     });
-    const rectLabel = await UI.editText(rectangle, "hello\nworld");
+    const rectLabel = await UI.editText(rectangle, "hello\nworld", {
+      keepContainerSize: true,
+    });
     const diamond = UI.createElement("diamond", {
       x: 140,
       y: 40,
@@ -1288,7 +1290,9 @@ describe("multiple selection", () => {
       height: 80,
       angle: Math.PI / 6,
     });
-    const rectLabel = await UI.editText(rectangle, "hello\nworld");
+    const rectLabel = await UI.editText(rectangle, "hello\nworld", {
+      keepContainerSize: true,
+    });
 
     const boundArrow = UI.createElement("arrow", {
       x: 380,

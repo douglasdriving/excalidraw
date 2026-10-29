@@ -2,13 +2,20 @@ import React from "react";
 
 import { BOUND_TEXT_PADDING, CODES, KEYS } from "@excalidraw/common";
 
-import type { ExcalidrawTextElement } from "@excalidraw/element/types";
+import { getCommonBounds } from "@excalidraw/element";
+
+import type {
+  ExcalidrawElement,
+  ExcalidrawTextContainer,
+  ExcalidrawTextElement,
+} from "@excalidraw/element/types";
 
 import { Excalidraw } from "../index";
 
 import { API } from "./helpers/api";
-import { Keyboard } from "./helpers/ui";
-import { render } from "./test-utils";
+import { Keyboard, Pointer, UI } from "./helpers/ui";
+import { getTextEditor } from "./queries/dom";
+import { fireEvent, render } from "./test-utils";
 
 const { h } = window;
 
@@ -120,5 +127,124 @@ describe("fork shortcuts", () => {
     expect(fitted.width).toBeGreaterThanOrEqual(
       longWord.length + BOUND_TEXT_PADDING * 2,
     );
+  });
+
+  it("W selects the lasso tool", () => {
+    Keyboard.keyPress(KEYS.W);
+    expect(h.state.activeTool.type).toBe("lasso");
+  });
+
+  it("Alt+A arranges the selection into an evenly spaced cluster without overlaps", () => {
+    // a pile of overlapping shapes
+    const shapes = Array.from({ length: 6 }, (_, i) =>
+      API.createElement({
+        type: "rectangle",
+        x: i * 10,
+        y: i * 5,
+        width: 100 + i * 20,
+        height: 60,
+      }),
+    );
+    API.setElements(shapes);
+    API.setSelectedElements(shapes);
+    const [minX, minY, maxX, maxY] = getCommonBounds(shapes);
+
+    Keyboard.withModifierKeys({ alt: true }, () => {
+      Keyboard.codePress(CODES.A);
+    });
+
+    const arranged = shapes.map((shape) => API.getElement(shape));
+    const overlaps = (a: ExcalidrawElement, b: ExcalidrawElement) =>
+      a.x < b.x + b.width &&
+      b.x < a.x + a.width &&
+      a.y < b.y + b.height &&
+      b.y < a.y + a.height;
+    for (const a of arranged) {
+      for (const b of arranged) {
+        if (a !== b) {
+          expect(overlaps(a, b)).toBe(false);
+        }
+      }
+    }
+    // centered where the selection was
+    const [nextMinX, nextMinY, nextMaxX, nextMaxY] = getCommonBounds(arranged);
+    expect((nextMinX + nextMaxX) / 2).toBeCloseTo((minX + maxX) / 2);
+    expect((nextMinY + nextMaxY) / 2).toBeCloseTo((minY + maxY) / 2);
+    // more than one row, so it's a cluster rather than a line
+    expect(new Set(arranged.map((el) => el.y)).size).toBeGreaterThan(1);
+  });
+
+  it("typing in a shape keeps it fitted to the text", async () => {
+    const [container, text] = API.createTextContainer({
+      label: { text: "hi" },
+    });
+    API.setElements([container, text]);
+    h.app.scene.mutateElement(container, { width: 1000, height: 30 });
+
+    await UI.editText(
+      container as ExcalidrawTextContainer,
+      Array(60).fill("word").join(" "),
+    );
+
+    const fitted = API.getElement(container);
+    expect(fitted.width / fitted.height).toBeGreaterThan(1.4);
+    expect(fitted.width / fitted.height).toBeLessThan(2.2);
+  });
+
+  it("a shape fitting itself while typing grows from its center", async () => {
+    const [container, text] = API.createTextContainer({
+      label: { text: "hi" },
+    });
+    API.setElements([container, text]);
+    h.app.scene.mutateElement(container, {
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 100,
+    });
+    API.setSelectedElements([container]);
+    Keyboard.keyPress(KEYS.ENTER);
+    const editor = await getTextEditor();
+
+    let typed = "";
+    for (const word of Array(40).fill("word")) {
+      typed += `${word} `;
+      fireEvent.input(editor, { target: { value: typed } });
+      const fitted = API.getElement(container);
+      expect(fitted.x + fitted.width / 2).toBeCloseTo(100);
+      expect(fitted.y + fitted.height / 2).toBeCloseTo(50);
+    }
+  });
+
+  it("free text wraps once it gets too long, and unwraps when shortened", async () => {
+    API.setAppState({ width: 2000, height: 1000 });
+    const mouse = new Pointer("mouse");
+    UI.clickTool("text");
+    mouse.clickAt(100, 100);
+    const editor = await getTextEditor();
+    const text = () => h.elements[0] as ExcalidrawTextElement;
+
+    // measureText is mocked: a character is 10px wide, so wraps at 600px
+    fireEvent.input(editor, { target: { value: "word ".repeat(30) } });
+    expect(text().autoResize).toBe(false);
+    expect(text().text.split("\n").length).toBeGreaterThan(1);
+    expect(text().width).toBe(600);
+
+    fireEvent.input(editor, { target: { value: "short" } });
+    expect(text().autoResize).toBe(true);
+    expect(text().text).toBe("short");
+  });
+
+  it("free text wraps before running off the right edge of the view", async () => {
+    API.setAppState({ width: 1000, height: 1000 });
+    const mouse = new Pointer("mouse");
+    UI.clickTool("text");
+    mouse.clickAt(700, 100);
+    const editor = await getTextEditor();
+    const text = () => h.elements[0] as ExcalidrawTextElement;
+
+    fireEvent.input(editor, { target: { value: "word ".repeat(30) } });
+    expect(text().autoResize).toBe(false);
+    expect(text().x + text().width).toBeLessThanOrEqual(1000 - 40);
   });
 });

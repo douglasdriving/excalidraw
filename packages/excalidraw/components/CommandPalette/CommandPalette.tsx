@@ -379,6 +379,7 @@ function CommandPaletteInner({
         actionManager.actions.unlockAllElements,
         actionManager.actions.stats,
         actionManager.actions.fitContainerToText,
+        actionManager.actions.arrangeSelection,
       ].map((action) => actionToCommand(action, DEFAULT_CATEGORIES.editor));
 
       const exportCommands: CommandPaletteItem[] = [

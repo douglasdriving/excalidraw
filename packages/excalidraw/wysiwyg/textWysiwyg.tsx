@@ -363,6 +363,12 @@ export const textWysiwyg = ({
       }
       const [viewportX, viewportY] = getViewportCoords(coordX, coordY);
 
+      // a text can switch to fixed-width wrapping while being typed
+      if (!container) {
+        whiteSpace = updatedTextElement.autoResize ? "pre" : "pre-wrap";
+        wordBreak = updatedTextElement.autoResize ? "normal" : "break-word";
+      }
+
       if (!container) {
         maxWidth = (appState.width - 8 - viewportX) / appState.zoom.value;
         width = Math.min(width, maxWidth);
@@ -403,6 +409,8 @@ export const textWysiwyg = ({
         ),
         opacity: updatedTextElement.opacity / 100,
         maxHeight: `${editorMaxHeight}px`,
+        whiteSpace,
+        wordBreak,
       });
       currentTextLayout = {
         angle: angle as Radians,

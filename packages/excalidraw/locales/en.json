@@ -180,6 +180,7 @@
     "installPWA": "Install Excalidraw locally (PWA)",
     "autoResize": "Enable text auto-resizing",
     "fitContainerToText": "Fit shape to text",
+    "arrangeSelection": "Tidy up selection",
     "imageCropping": "Image cropping",
     "unCroppedDimension": "Uncropped dimension",
     "copyElementLink": "Copy link to object",
@@ -438,7 +439,6 @@
     "blog": "Read our blog",
     "click": "click",
     "deepSelect": "Deep select",
-    "pickStamp": "Choose emoji stamp (with stamp tool)",
     "deepBoxSelect": "Deep select within box, and prevent dragging",
     "createFlowchart": "Create a flowchart from a generic element",
     "navigateFlowchart": "Navigate a flowchart",
@@ -715,7 +715,9 @@
       "isSpeaking": "User is speaking"
     }
   },
-  "stampPicker": {
+  "stampPanel": {
+    "size": "Stamp size",
+    "emoji": "Stamp",
     "placeholder": "Search emoji…",
     "loading": "Loading emoji…",
     "loadError": "Couldn't load emoji",

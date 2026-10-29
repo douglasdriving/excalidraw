@@ -95,3 +95,4 @@ export { actionToggleSearchMenu } from "./actionToggleSearchMenu";
 export { actionToggleCropEditor } from "./actionCropEditor";
 
 export { actionFitContainerToText } from "./actionFitContainerToText";
+export { actionArrangeSelection } from "./actionArrangeSelection";

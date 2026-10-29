@@ -93,6 +93,18 @@ body.excalidraw-cursor-resize * {
     }
   }
 
+  // see-through emoji following the pointer while the stamp tool is active
+  .excalidraw__stampPreview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: var(--zIndex-interactiveCanvas);
+    opacity: 0.4;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre;
+  }
+
   canvas {
     touch-action: none;
 

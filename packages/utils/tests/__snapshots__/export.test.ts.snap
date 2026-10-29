@@ -35,6 +35,7 @@ exports[`exportToSvg > with default arguments 1`] = `
   "currentItemStrokeWidthKey": "medium",
   "currentItemTextAlign": "left",
   "currentStampEmoji": "⭐",
+  "currentStampSize": 64,
   "cursorButton": "up",
   "defaultSidebarDockedPreference": false,
   "editingFrame": null,

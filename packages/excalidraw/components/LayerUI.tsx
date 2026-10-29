@@ -50,7 +50,7 @@ import { sidebarRightIcon } from "./icons";
 import { DefaultSidebar } from "./DefaultSidebar";
 import { TTDDialog } from "./TTDDialog/TTDDialog";
 import { Stats } from "./Stats";
-import { StampPicker } from "./StampPicker";
+import { StampPanel } from "./StampPanel";
 import ElementLinkDialog from "./ElementLinkDialog";
 import { ErrorDialog } from "./ErrorDialog";
 import { EyeDropper, activeEyeDropperAtom } from "./EyeDropper";
@@ -282,11 +282,43 @@ const LayerUI = ({
     );
   };
 
+  const renderStampPanel = () => (
+    <Section
+      heading="selectedShapeActions"
+      className={clsx("selected-shape-actions zen-mode-transition", {
+        "transition-left": appState.zenModeEnabled,
+      })}
+    >
+      <Island
+        className={CLASSES.SHAPE_ACTIONS_MENU}
+        padding={2}
+        style={{ maxHeight: `${appState.height - 166}px` }}
+      >
+        <StampPanel
+          currentEmoji={appState.currentStampEmoji}
+          currentSize={appState.currentStampSize}
+          onPickEmoji={(emoji, viaKeyboard) => {
+            setAppState({ currentStampEmoji: emoji });
+            if (viaKeyboard) {
+              app.focusContainer();
+            }
+          }}
+          onChangeSize={(size) => setAppState({ currentStampSize: size })}
+        />
+      </Island>
+    </Section>
+  );
+
   const renderFixedSideContainer = () => {
     const shouldRenderSelectedShapeActions = showSelectedShapeActions(
       appState,
       elements,
     );
+
+    const shouldRenderStampPanel =
+      appState.activeTool.type === "stamp" &&
+      !appState.viewModeEnabled &&
+      !shouldRenderSelectedShapeActions;
 
     const shouldShowStats =
       appState.stats.open &&
@@ -309,6 +341,7 @@ const LayerUI = ({
               })}
             >
               {shouldRenderSelectedShapeActions && renderSelectedShapeActions()}
+              {shouldRenderStampPanel && renderStampPanel()}
             </div>
             {/* in compact UI the pen mode button lives outside the toolbar, as
                 a separate floating button below the compact actions menu
@@ -545,15 +578,6 @@ const LayerUI = ({
             });
             eyeDropperState?.onSelect?.(color, event);
           }}
-        />
-      )}
-      {appState.openDialog?.name === "stampPicker" && (
-        <StampPicker
-          currentEmoji={appState.currentStampEmoji}
-          onPick={(emoji) =>
-            setAppState({ currentStampEmoji: emoji, openDialog: null })
-          }
-          onClose={() => setAppState({ openDialog: null })}
         />
       )}
       {appState.openDialog?.name === "help" && (

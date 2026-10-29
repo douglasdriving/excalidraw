@@ -1083,7 +1083,9 @@ export const ShapesSwitcher = ({
     {
       type: "lasso",
       icon: LassoIcon,
-      title: capitalizeString(t("toolBar.lasso")),
+      title: `${capitalizeString(
+        t("toolBar.lasso"),
+      )} — ${KEYS.W.toLocaleUpperCase()}`,
     },
   ] as const;
 
@@ -1269,7 +1271,10 @@ export const ShapesSwitcher = ({
           icon={LassoIcon}
           checked={lassoToolSelected}
           name="editor-current-shape"
-          title={capitalizeString(t("toolBar.lasso"))}
+          title={`${capitalizeString(
+            t("toolBar.lasso"),
+          )} — ${KEYS.W.toLocaleUpperCase()}`}
+          keyBindingLabel={KEYS.W.toLocaleUpperCase()}
           aria-label={capitalizeString(t("toolBar.lasso"))}
           data-testid="toolbar-lasso"
           onChange={() => app.setActiveTool({ type: "lasso" })}

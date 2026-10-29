@@ -714,8 +714,9 @@ describe("textWysiwyg", () => {
       );
       Keyboard.exitTextEditor(textarea);
 
-      expect(textarea.style.width).toBe("792px");
-      expect(h.elements[0].width).toBe(1000);
+      // free text wraps at 60 characters (10px each in tests)
+      expect(textarea.style.width).toBe("600px");
+      expect(h.elements[0].width).toBe(600);
     });
   });
 
@@ -880,10 +881,11 @@ describe("textWysiwyg", () => {
 
       expect(diamond.height).toBe(50020);
 
-      // Clearing text to simulate height decrease
+      // Clearing text to simulate height decrease: the container goes back
+      // to the size it had before editing
       expect(() => updateTextEditor(editor, "")).not.toThrow();
 
-      expect(diamond.height).toBe(70);
+      expect(diamond.height).toBe(75);
     });
 
     it("should bind text to container when double clicked inside of the transparent container", async () => {
@@ -1236,8 +1238,8 @@ describe("textWysiwyg", () => {
       UI.resize(rectangle, "ne", [rectangle.x + 100, rectangle.y - 100]);
       expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
         [
-          85,
-          "5.00000",
+          "92.50000",
+          15,
         ]
       `);
 
@@ -1256,8 +1258,8 @@ describe("textWysiwyg", () => {
       UI.resize(rectangle, "ne", [rectangle.x + 100, rectangle.y - 100]);
       expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
         [
-          15,
-          65,
+          30,
+          45,
         ]
       `);
 
@@ -1276,8 +1278,8 @@ describe("textWysiwyg", () => {
       UI.resize(rectangle, "ne", [rectangle.x + 100, rectangle.y - 100]);
       expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
         [
-          "375.00000",
-          "-535.00000",
+          405,
+          "-375.00000",
         ]
       `);
     });
@@ -1316,6 +1318,8 @@ describe("textWysiwyg", () => {
       const editor = await getTextEditor();
       updateTextEditor(editor, "Hello");
       Keyboard.exitTextEditor(editor);
+      // typing fitted the rectangle to its text; this test needs its drawn size
+      UI.setContainerSize(rectangle, { x: 10, y: 20, width: 90, height: 75 });
       const textElement = h.elements[1] as ExcalidrawTextElement;
       expect(rectangle.width).toBe(90);
       expect(rectangle.height).toBe(75);
@@ -1366,6 +1370,8 @@ describe("textWysiwyg", () => {
       const editor = await getTextEditor();
       updateTextEditor(editor, "Hello");
       Keyboard.exitTextEditor(editor);
+      // typing fitted the rectangle to its text; this test needs its drawn size
+      UI.setContainerSize(rectangle, { x: 10, y: 20, width: 90, height: 75 });
       expect(rectangle.boundElements).toStrictEqual([
         { id: h.elements[1].id, type: "text" },
       ]);
@@ -1494,6 +1500,8 @@ describe("textWysiwyg", () => {
       let editor = await getTextEditor();
       updateTextEditor(editor, "Hello");
       Keyboard.exitTextEditor(editor);
+      // typing fitted the rectangle to its text; this test needs its drawn size
+      UI.setContainerSize(rectangle, { x: 10, y: 20, width: 90, height: 75 });
 
       UI.resize(rectangle, "ne", [rectangle.x + 100, rectangle.y - 100]);
       expect(rectangle.height).toBeCloseTo(155, 8);
@@ -1520,6 +1528,8 @@ describe("textWysiwyg", () => {
       const editor = await getTextEditor();
       updateTextEditor(editor, "Hello World!");
       Keyboard.exitTextEditor(editor);
+      // typing fitted the rectangle to its text; this test needs its drawn size
+      UI.setContainerSize(rectangle, { x: 10, y: 20, width: 90, height: 75 });
 
       mouse.select(rectangle);
       Keyboard.keyPress(KEYS.ENTER);
@@ -1674,8 +1684,8 @@ describe("textWysiwyg", () => {
         fireEvent.click(screen.getByTitle("Align top"));
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
-            15,
-            25,
+            30,
+            45,
           ]
         `);
       });
@@ -1686,7 +1696,7 @@ describe("textWysiwyg", () => {
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
             30,
-            25,
+            45,
           ]
         `);
       });
@@ -1697,8 +1707,8 @@ describe("textWysiwyg", () => {
 
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
+            30,
             45,
-            25,
           ]
         `);
       });
@@ -1708,7 +1718,7 @@ describe("textWysiwyg", () => {
         fireEvent.click(screen.getByTitle("Left"));
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
-            15,
+            30,
             45,
           ]
         `);
@@ -1732,7 +1742,7 @@ describe("textWysiwyg", () => {
 
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
-            45,
+            30,
             45,
           ]
         `);
@@ -1744,8 +1754,8 @@ describe("textWysiwyg", () => {
 
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
-            15,
-            65,
+            30,
+            45,
           ]
         `);
       });
@@ -1756,7 +1766,7 @@ describe("textWysiwyg", () => {
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
             30,
-            65,
+            45,
           ]
         `);
       });
@@ -1766,8 +1776,8 @@ describe("textWysiwyg", () => {
         fireEvent.click(screen.getByTitle("Align bottom"));
         expect([h.elements[1].x, h.elements[1].y]).toMatchInlineSnapshot(`
           [
+            30,
             45,
-            65,
           ]
         `);
       });
@@ -1869,6 +1879,8 @@ describe("textWysiwyg", () => {
       fireEvent.click(screen.getByTitle("Align bottom"));
 
       Keyboard.exitTextEditor(editor);
+      // typing fitted the rectangle to its text; this test needs its drawn size
+      UI.setContainerSize(rectangle, { x: 10, y: 20, width: 90, height: 75 });
 
       expect(rectangle.boundElements).toStrictEqual([
         { id: text.id, type: "text" },

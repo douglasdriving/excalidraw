@@ -17,6 +17,7 @@ export const CODES = {
   QUOTE: "Quote",
   ZERO: "Digit0",
   SLASH: "Slash",
+  A: "KeyA",
   C: "KeyC",
   D: "KeyD",
   F: "KeyF",

@@ -6,8 +6,9 @@ import type { AppState } from "../types";
 
 export const DEFAULT_STAMP_EMOJI = "⭐";
 
-/** font size of a stamp, in screen pixels at the time it's stamped */
-export const STAMP_SCREEN_FONT_SIZE = 64;
+/** font sizes of a stamp, in screen pixels at the time it's stamped */
+export const STAMP_SIZES = { sm: 32, md: 64, lg: 128, xl: 256 } as const;
+export const DEFAULT_STAMP_SIZE = STAMP_SIZES.md;
 
 export type StampEmoji = {
   emoji: string;
@@ -114,7 +115,7 @@ export const newStampElement = ({
     text: emoji,
     x: sceneX,
     y: sceneY,
-    fontSize: Math.round(STAMP_SCREEN_FONT_SIZE / appState.zoom.value),
+    fontSize: Math.round(appState.currentStampSize / appState.zoom.value),
     fontFamily: appState.currentItemFontFamily,
     textAlign: "center",
     verticalAlign: "middle",

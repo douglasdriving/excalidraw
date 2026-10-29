@@ -867,7 +867,7 @@ describe("mutliple elements", () => {
     });
 
     Keyboard.keyPress(KEYS.ENTER);
-    let editor = await getTextEditor();
+    const editor = await getTextEditor();
     fireEvent.input(editor, { target: { value: "arrow" } });
     Keyboard.exitTextEditor(editor);
 
@@ -878,10 +878,7 @@ describe("mutliple elements", () => {
       height: 100,
     });
 
-    Keyboard.keyPress(KEYS.ENTER);
-    editor = await getTextEditor();
-    fireEvent.input(editor, { target: { value: "rect\ntext" } });
-    Keyboard.exitTextEditor(editor);
+    await UI.editText(rectangle, "rect\ntext", { keepContainerSize: true });
 
     mouse.select([arrow, rectangle]);
     API.executeAction(actionFlipHorizontal);

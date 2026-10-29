@@ -139,6 +139,7 @@ export type ActionName =
   | "commandPalette"
   | "autoResize"
   | "fitContainerToText"
+  | "arrangeSelection"
   | "elementStats"
   | "searchMenu"
   | "copyElementLink"
