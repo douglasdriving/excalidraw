@@ -9,7 +9,7 @@ import { CanvasSwitcher } from "./CanvasSwitcher";
 import { FolderSetupDialog } from "./FolderSetupDialog";
 import { InstallPrompt } from "./InstallPrompt";
 import { LocalFiles, localFilesStateAtom } from "./LocalFiles";
-import { UNTITLED_NAME } from "./names";
+import { APP_NAME, UNTITLED_NAME } from "./names";
 import { OpenCanvasDialog } from "./OpenCanvasDialog";
 import { SaveAsDialog } from "./SaveAsDialog";
 import { SavePopup } from "./SavePopup";
@@ -85,8 +85,8 @@ export const LocalFilesUI = ({
   useEffect(() => {
     document.title =
       availability === "checking"
-        ? "Excalidraw"
-        : `${currentName ?? UNTITLED_NAME} — Excalidraw`;
+        ? APP_NAME
+        : `${currentName ?? UNTITLED_NAME} — ${APP_NAME}`;
   }, [currentName, availability]);
 
   useFileShortcuts();

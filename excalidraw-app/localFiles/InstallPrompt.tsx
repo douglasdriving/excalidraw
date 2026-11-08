@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 import { atom, useAtom } from "../app-jotai";
 
+import { APP_NAME } from "./names";
+
 /** "Not now" hides the prompt for this long. */
 export const INSTALL_PROMPT_SNOOZE = 14 * 24 * 60 * 60 * 1000;
 const SNOOZE_KEY = "excalidraw-install-prompt-snoozed-at";
@@ -104,12 +106,12 @@ export const InstallPrompt = () => {
   return (
     <Dialog
       size="small"
-      title="Install Excalidraw as an app"
+      title={`Install ${APP_NAME} as an app`}
       className="local-files-dialog"
       onCloseRequest={snooze}
     >
       <p className="local-files-setup__text">
-        Excalidraw works best installed. It gets its own window and icon, works
+        {APP_NAME} works best installed. It gets its own window and icon, works
         offline, and keeps access to your canvases folder between launches. In a
         browser tab, the browser may ask you to allow folder access again every
         time you open it.

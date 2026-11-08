@@ -2,6 +2,9 @@
 // must be safe path segments. Shared by the store and the UI.
 
 export const CANVAS_EXTENSION = ".excalidraw";
+/** What this fork calls itself (window title, install prompt, PWA name). */
+export const APP_NAME = "Doxcalidraw";
+
 export const UNTITLED_NAME = "Untitled";
 export const MAX_NAME_LENGTH = 100;
 
