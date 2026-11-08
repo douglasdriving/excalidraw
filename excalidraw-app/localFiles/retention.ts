@@ -1,5 +1,5 @@
 // Version-history thinning: recent history is kept in full, older history is
-// thinned to progressively sparser snapshots. Shared by the dev-server plugin
+// thinned to progressively sparser snapshots. Shared by the store
 // (which prunes) and the UI (which explains the policy).
 
 const MINUTE = 60 * 1000;

@@ -587,3 +587,36 @@
     transform: scale(1);
   }
 }
+
+// storage location dialog
+.excalidraw .local-files-setup__picked {
+  margin: 0.75rem 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--lf-ok-bg);
+  color: var(--lf-ok);
+}
+
+.excalidraw .local-files-setup__text {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-on-surface, var(--text-primary-color));
+
+  code {
+    font-size: 0.9em;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: var(--color-surface-low, rgba(0, 0, 0, 0.06));
+    user-select: all;
+  }
+}
+
+.excalidraw .local-files-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}

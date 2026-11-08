@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useAtomValue } from "../app-jotai";
 
 import { localFilesApi } from "./api";
+import { Thumbnail } from "./Thumbnail";
+import { createZip } from "./zip";
 import { LocalFiles, localFilesStateAtom } from "./LocalFiles";
 import { nameExists, validateCanvasName } from "./names";
 import { filePlusIcon, pencilIcon, trashIcon } from "./icons";
@@ -105,11 +107,7 @@ const CanvasCard = ({
     >
       <div className="local-files-card__thumb">
         {file.hasThumbnail ? (
-          <img
-            src={localFilesApi.thumbnailUrl(file.name, file.modified)}
-            alt=""
-            loading="lazy"
-          />
+          <Thumbnail name={file.name} modified={file.modified} />
         ) : (
           <span className="local-files-card__no-thumb">No preview</span>
         )}
@@ -223,8 +221,22 @@ const CanvasCard = ({
   );
 };
 
+/** Downloads every canvas in browser storage as one zip. */
+const exportAll = async () => {
+  const files = await localFilesApi.exportAll();
+  const blob = new Blob([createZip(files)], { type: "application/zip" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `excalidraw-canvases-${new Date()
+    .toISOString()
+    .slice(0, 10)}.zip`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+};
+
 export const OpenCanvasDialog = () => {
-  const { currentName } = useAtomValue(localFilesStateAtom);
+  const { currentName, storageKind } = useAtomValue(localFilesStateAtom);
   const [listing, setListing] = useState<Listing | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -280,8 +292,29 @@ export const OpenCanvasDialog = () => {
       {listing && (
         <div className="local-files-muted local-files-open__dir">
           {listing.files.length}{" "}
-          {listing.files.length === 1 ? "canvas" : "canvases"} in{" "}
-          <code>{listing.dir}</code>
+          {listing.files.length === 1 ? "canvas" : "canvases"} in {listing.dir}{" "}
+          ·{" "}
+          <button
+            type="button"
+            className="local-files-link"
+            onClick={() => LocalFiles.setDialog("storage")}
+          >
+            Change…
+          </button>
+          {storageKind === "browser" && listing.files.length > 0 && (
+            <>
+              {" · "}
+              <button
+                type="button"
+                className="local-files-link"
+                onClick={() =>
+                  exportAll().catch((e) => setActionError(e.message))
+                }
+              >
+                Export all
+              </button>
+            </>
+          )}
         </div>
       )}
 

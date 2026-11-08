@@ -79,7 +79,9 @@ Editor commands (anything triggered by a menu item, shortcut, or context menu) a
 
 Wraps the `<Excalidraw>` component and adds: collaboration (`collab/`), shareable encrypted links (`share/`, `data/`), local-first persistence (IndexedDB autosave), PWA, and Sentry. State glue uses **jotai** (`app-jotai.ts`; the library has its own `editor-jotai.ts`).
 
-**Local files (fork-specific):** `excalidraw-app/localFiles/` gives desktop-style autosave, open (Ctrl+O), save-as (Ctrl+S) and version history. `vitePlugin.ts` serves `/api/local-files/*` over `<repo>/canvases/` (gitignored; override with `EXCALIDRAW_CANVAS_DIR`). Metadata, history and trash are kept in `canvases/.excalidraw-local/`. The client controller is `LocalFiles.ts` (a jotai atom). **This only works under `yarn start`**, because production builds have no backend.
+**Local files (fork-specific):** `excalidraw-app/localFiles/` gives desktop-style autosave, open (Ctrl+O), save-as (Ctrl+S) and version history, entirely in the browser (no backend). On first launch the user picks a folder (File System Access API; Chromium only, and Brave needs `brave://flags/#file-system-access-api`) or browser storage (OPFS, any browser; "Export all" downloads a zip). `storageLocation.ts` keeps the choice and folder handle in IndexedDB and handles re-granting permission; `handleStore.ts` implements the store over a `FileSystemDirectoryHandle` (same code for both locations); `api.ts` delegates to the active store and serializes writes; `LocalFiles.ts` is the controller (a jotai atom). On-disk layout: `<name>.excalidraw` plus `.excalidraw-local/` (state, thumbnails, history, trash). `canvases/` in the repo is just a gitignored folder you can pick.
+
+**Hosting:** the app is static. Cloudflare Pages builds it from the GitHub repo on every push to its production branch (dashboard Git integration): build command `yarn build:app:docker && yarn build:version` (Sentry off), output `excalidraw-app/build`. A browser tab shows an install prompt (`localFiles/InstallPrompt.tsx`) because the installed PWA keeps folder access between launches.
 
 ## Conventions
 

@@ -1,7 +1,8 @@
 /**
- * Desktop-style file handling on top of the local dev-server file API:
- * one canvas = one `<name>.excalidraw` file, autosaved whenever the drawing
- * actually changes, with version history kept by the server.
+ * Desktop-style file handling on top of a storage folder (one the user
+ * picked, or the browser's private storage): one canvas = one
+ * `<name>.excalidraw` file, autosaved whenever the drawing actually changes,
+ * with version history kept alongside.
  *
  * State lives in a jotai atom so the UI (status pill, dialogs) can render it.
  */
@@ -27,8 +28,12 @@ import type { RestoredDataState } from "@excalidraw/excalidraw/data/restore";
 
 import { appJotaiStore, atom } from "../app-jotai";
 
-import { LocalFilesApiError, localFilesApi } from "./api";
+import { LocalFilesApiError, localFilesApi, setActiveStore } from "./api";
+import { restoreLocation } from "./storageLocation";
 import { UNTITLED_NAME } from "./names";
+
+import type { StorageKind } from "./storageLocation";
+import type { HandleStore } from "./handleStore";
 
 /** save this long after the last edit... */
 const SAVE_IDLE_DELAY = 1500;
@@ -41,12 +46,29 @@ export type SaveStatus =
   /** untitled canvas with nothing drawn yet: no file exists */
   "empty" | "saved" | "dirty" | "saving" | "error";
 
-export type LocalFilesDialog = "open" | "saveAs" | "history" | null;
+export type LocalFilesDialog =
+  | "open"
+  | "saveAs"
+  | "history"
+  /** choose or change where canvases are stored */
+  | "storage"
+  | null;
 
 export type LocalFilesState = {
-  availability: "checking" | "available" | "unavailable";
+  availability:
+    | "checking"
+    | "available"
+    | "unavailable"
+    /** no storage location chosen yet */
+    | "setup"
+    /** the saved folder needs a click to re-grant access */
+    | "permission";
   unavailableReason: string | null;
+  /** where canvases are stored, as shown to the user */
   dir: string | null;
+  storageKind: StorageKind | null;
+  /** name of the folder awaiting permission */
+  permissionFolder: string | null;
   /** null while the canvas is untitled and has never been saved */
   currentName: string | null;
   status: SaveStatus;
@@ -65,6 +87,8 @@ export const localFilesStateAtom = atom<LocalFilesState>({
   availability: "checking",
   unavailableReason: null,
   dir: null,
+  storageKind: null,
+  permissionFolder: null,
   currentName: null,
   status: "empty",
   lastSavedAt: null,
@@ -172,6 +196,9 @@ export class LocalFiles {
     localAppState: Partial<AppState> | null,
   ): Promise<RestoredDataState | null> {
     setState({ availability: "checking" });
+    if (!(await this.restoreStorage())) {
+      return null;
+    }
     let listing;
     try {
       listing = await localFilesApi.list();
@@ -227,6 +254,9 @@ export class LocalFiles {
    * opened file, treat the scene as a new untitled canvas instead.
    */
   static async initUntitled() {
+    if (!(await this.restoreStorage())) {
+      return;
+    }
     try {
       const listing = await localFilesApi.list();
       setState({
@@ -242,6 +272,69 @@ export class LocalFiles {
         unavailableReason: errorMessage(error),
       });
     }
+  }
+
+  /**
+   * Reopens the saved storage location. Returns false when the user has to
+   * act first (choose a location, or click to re-grant folder access).
+   */
+  private static async restoreStorage(): Promise<boolean> {
+    try {
+      const result = await restoreLocation();
+      if (result.status === "ready") {
+        setActiveStore({ store: result.store, kind: result.kind });
+        setState({ storageKind: result.kind });
+        return true;
+      }
+      setActiveStore(null);
+      setState({
+        availability: result.status,
+        permissionFolder:
+          result.status === "permission" ? result.folderName : null,
+        currentName: null,
+        status: "empty",
+      });
+    } catch (error) {
+      setState({
+        availability: "unavailable",
+        unavailableReason: errorMessage(error),
+      });
+    }
+    return false;
+  }
+
+  /**
+   * Switches to a newly chosen (or re-granted) storage location. An empty
+   * canvas opens the location's last canvas; a drawing in progress is kept
+   * and saved there as a new untitled canvas. Throws so dialogs can show it.
+   */
+  static async connect(store: HandleStore, kind: StorageKind) {
+    await this.save();
+    setActiveStore({ store, kind });
+    const listing = await localFilesApi.list();
+    setState({
+      availability: "available",
+      unavailableReason: null,
+      permissionFolder: null,
+      dir: listing.dir,
+      storageKind: kind,
+      currentName: null,
+      status: "empty",
+      error: null,
+      retryAt: null,
+      dialog: null,
+    });
+    const api = this.api;
+    if (!api) {
+      return;
+    }
+    const drawing = hasVisibleContent(api.getSceneElementsIncludingDeleted());
+    if (!drawing && listing.lastOpened) {
+      await this.open(listing.lastOpened);
+      return;
+    }
+    this.savedSignature = null;
+    this.onChange(api.getSceneElementsIncludingDeleted(), api.getAppState());
   }
 
   /** Retry after the file API was unavailable at startup. */
@@ -470,18 +563,9 @@ export class LocalFiles {
     if (!this.isDirty() && !this.inFlight) {
       return false;
     }
-    const api = this.api!;
-    const name = getState().currentName;
-    if (name && !this.inFlight) {
-      const content = serializeAsJSON(
-        getNonDeletedElements(api.getSceneElementsIncludingDeleted()),
-        api.getAppState(),
-        api.getFiles(),
-        "local",
-      );
-      if (localFilesApi.saveOnUnload({ name, content })) {
-        return false;
-      }
+    // writes are async, so start saving and ask the browser to hold on
+    if (!this.inFlight && getState().currentName) {
+      this.save();
     }
     return true;
   }

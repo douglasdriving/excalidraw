@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 
 import { localFilesApi } from "./api";
+import { Thumbnail } from "./Thumbnail";
 import { LocalFiles } from "./LocalFiles";
 
 import type { CanvasListEntry } from "./api";
@@ -239,10 +240,7 @@ export const CanvasSwitcher = ({
         >
           <div className="local-files-switcher__thumb">
             {file.hasThumbnail ? (
-              <img
-                src={localFilesApi.thumbnailUrl(file.name, file.modified)}
-                alt=""
-              />
+              <Thumbnail name={file.name} modified={file.modified} />
             ) : (
               <span className="local-files-card__no-thumb">No preview</span>
             )}

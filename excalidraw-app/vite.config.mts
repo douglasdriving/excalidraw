@@ -11,7 +11,6 @@ import Sitemap from "vite-plugin-sitemap";
 
 import { woff2BrowserPlugin } from "../scripts/woff2/woff2-vite-plugins";
 
-import { localFilesPlugin } from "./localFiles/vitePlugin";
 export default defineConfig(({ mode }) => {
   // To load .env variables
   const envVars = loadEnv(mode, `../`);
@@ -144,11 +143,6 @@ export default defineConfig(({ mode }) => {
         generateRobotsTxt: false,
       }),
       woff2BrowserPlugin(),
-      localFilesPlugin({
-        dir:
-          process.env.EXCALIDRAW_CANVAS_DIR ||
-          path.resolve(__dirname, "../canvases"),
-      }),
       react(),
       checker({
         typescript: true,

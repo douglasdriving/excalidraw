@@ -1,8 +1,18 @@
-import type { CanvasListEntry, CanvasVersionEntry } from "./vitePlugin";
+// The canvas storage API the controller and dialogs use. Delegates to the
+// active HandleStore (a picked folder or browser storage), serializes writes
+// so history pruning never races, and turns storage errors into readable
+// messages.
+
+import { StoreError, describeStorageError } from "./handleStore";
+
+import type {
+  CanvasListEntry,
+  CanvasVersionEntry,
+  HandleStore,
+} from "./handleStore";
+import type { StorageKind } from "./storageLocation";
 
 export type { CanvasListEntry, CanvasVersionEntry };
-
-const BASE = "/api/local-files";
 
 export class LocalFilesApiError extends Error {
   constructor(message: string, public status: number) {
@@ -10,101 +20,76 @@ export class LocalFilesApiError extends Error {
   }
 }
 
-const request = async (
-  path: string,
-  init?: RequestInit & { json?: unknown },
-): Promise<Response> => {
-  let response: Response;
-  try {
-    response = await fetch(`${BASE}${path}`, {
-      ...init,
-      ...(init?.json !== undefined && {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(init.json),
-      }),
-    });
-  } catch {
-    throw new LocalFilesApiError(
-      "Can't reach the local file server. Is the dev server running?",
-      0,
-    );
-  }
-  if (!response.ok) {
-    let message = `Request failed (${response.status})`;
-    try {
-      message = (await response.json()).error || message;
-    } catch {
-      // the dev server isn't serving this API (e.g. a production build)
-      message =
-        response.status === 404
-          ? "Local file API not available (only runs on the Vite dev server)"
-          : message;
-    }
-    throw new LocalFilesApiError(message, response.status);
-  }
-  return response;
+let active: { store: HandleStore; kind: StorageKind } | null = null;
+
+export const setActiveStore = (
+  next: { store: HandleStore; kind: StorageKind } | null,
+) => {
+  active = next;
+  queue = Promise.resolve();
 };
 
-const enc = encodeURIComponent;
+export const getActiveStorageKind = () => active?.kind ?? null;
+
+const call = async <T>(fn: (store: HandleStore) => Promise<T>): Promise<T> => {
+  if (!active) {
+    throw new LocalFilesApiError("No storage location chosen yet", 0);
+  }
+  const { store } = active;
+  try {
+    return await fn(store);
+  } catch (error: any) {
+    if (error instanceof StoreError) {
+      throw new LocalFilesApiError(error.message, error.status);
+    }
+    console.error("[local-files]", error);
+    throw new LocalFilesApiError(describeStorageError(error, store.label), 500);
+  }
+};
+
+let queue: Promise<unknown> = Promise.resolve();
+const serialized = <T>(fn: (store: HandleStore) => Promise<T>): Promise<T> => {
+  const next = queue.then(
+    () => call(fn),
+    () => call(fn),
+  );
+  queue = next.catch(() => {});
+  return next;
+};
 
 export const localFilesApi = {
-  list: async (): Promise<{
+  list: (): Promise<{
     dir: string;
     files: CanvasListEntry[];
     lastOpened: string | null;
     /** canvas names, most recently opened first */
     recent: string[];
-  }> => (await request("/list")).json(),
+  }> => call((s) => s.list()),
 
-  read: async (name: string): Promise<string> =>
-    (await request(`/file?name=${enc(name)}`)).text(),
+  read: (name: string) => call((s) => s.read(name)),
 
-  save: async (body: {
-    name: string;
-    content: string;
-    thumbnail?: string;
-  }): Promise<{ saved: boolean; modified: number }> =>
-    (await request("/save", { json: body })).json(),
+  save: (body: { name: string; content: string; thumbnail?: string }) =>
+    serialized((s) => s.save(body)),
 
-  create: async (body: {
+  create: (body: {
     name: string;
     content: string;
     thumbnail?: string;
     pickFreeName?: boolean;
-  }): Promise<{ name: string; modified: number }> =>
-    (await request("/create", { json: body })).json(),
+  }) => serialized((s) => s.create(body)),
 
-  rename: async (from: string, to: string): Promise<{ name: string }> =>
-    (await request("/rename", { json: { from, to } })).json(),
+  rename: (from: string, to: string) => serialized((s) => s.rename(from, to)),
 
-  remove: async (name: string): Promise<{ trashedTo: string }> =>
-    (await request("/delete", { json: { name } })).json(),
+  remove: (name: string) => serialized((s) => s.remove(name)),
 
-  setLastOpened: async (name: string | null) =>
-    (await request("/last-opened", { json: { name } })).json(),
+  setLastOpened: (name: string | null) =>
+    serialized((s) => s.setLastOpened(name)),
 
-  history: async (name: string): Promise<CanvasVersionEntry[]> =>
-    (await request(`/history?name=${enc(name)}`)).json(),
+  history: (name: string) => call((s) => s.history(name)),
 
-  readVersion: async (name: string, id: string): Promise<string> =>
-    (await request(`/version?name=${enc(name)}&id=${enc(id)}`)).text(),
+  readVersion: (name: string, id: string) => call((s) => s.version(name, id)),
 
-  thumbnailUrl: (name: string, cacheKey: number) =>
-    `${BASE}/thumbnail?name=${enc(name)}&v=${cacheKey}`,
+  thumbnail: (name: string) => call((s) => s.thumbnail(name)),
 
-  /** Best-effort save while the page unloads (fetch keepalive caps ~64KB). */
-  saveOnUnload: (body: { name: string; content: string }) => {
-    const payload = JSON.stringify(body);
-    if (payload.length > 60_000) {
-      return false;
-    }
-    fetch(`${BASE}/save`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: payload,
-      keepalive: true,
-    }).catch(() => {});
-    return true;
-  },
+  exportAll: () => call((s) => s.exportAll()),
 };

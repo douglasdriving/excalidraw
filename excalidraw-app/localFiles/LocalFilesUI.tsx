@@ -6,6 +6,8 @@ import type { ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
 import { useAtomValue } from "../app-jotai";
 
 import { CanvasSwitcher } from "./CanvasSwitcher";
+import { FolderSetupDialog } from "./FolderSetupDialog";
+import { InstallPrompt } from "./InstallPrompt";
 import { LocalFiles, localFilesStateAtom } from "./LocalFiles";
 import { UNTITLED_NAME } from "./names";
 import { OpenCanvasDialog } from "./OpenCanvasDialog";
@@ -92,6 +94,8 @@ export const LocalFilesUI = ({
 
   return (
     <>
+      <InstallPrompt />
+      <FolderSetupDialog />
       <SavePopup />
       <CanvasSwitcher excalidrawAPI={excalidrawAPI} />
       {dialog === "open" && <OpenCanvasDialog />}

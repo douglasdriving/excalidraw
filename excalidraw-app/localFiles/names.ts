@@ -1,5 +1,5 @@
 // Canvas names double as file names on disk (`<name>.excalidraw`), so they
-// must be safe path segments. Shared by the browser and the dev-server plugin.
+// must be safe path segments. Shared by the store and the UI.
 
 export const CANVAS_EXTENSION = ".excalidraw";
 export const UNTITLED_NAME = "Untitled";
