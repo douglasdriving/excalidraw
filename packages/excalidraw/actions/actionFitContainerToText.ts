@@ -111,15 +111,29 @@ export const fitContainerToText = (
     return;
   }
   const { width, height } = getBalancedContainerSize(container, textElement);
-
-  scene.mutateElement(container, {
+  const fitted = {
     x: center.x - width / 2,
     y: center.y - height / 2,
     width,
     height,
-  });
+  };
+
+  scene.mutateElement(container, fitted);
   updateOriginalContainerCache(container.id, height);
   redrawTextBoundingBox(textElement, container, scene);
+  // the text editor reacts to the first resize while the text is still
+  // wrapped for the old width, and can grow the container downwards. Now
+  // that the text is rewrapped, put the fitted size and position back.
+  if (
+    container.x !== fitted.x ||
+    container.y !== fitted.y ||
+    container.width !== width ||
+    container.height !== height
+  ) {
+    scene.mutateElement(container, fitted);
+    updateOriginalContainerCache(container.id, height);
+    redrawTextBoundingBox(textElement, container, scene);
+  }
   updateBoundElements(container, scene);
 };
 

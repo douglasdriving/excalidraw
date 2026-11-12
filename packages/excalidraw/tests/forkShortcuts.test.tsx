@@ -216,6 +216,45 @@ describe("fork shortcuts", () => {
     }
   });
 
+  it("a shape stays put while a long word grows in scaled text", async () => {
+    const [container, text] = API.createTextContainer({
+      label: { text: "dsad as" },
+    });
+    API.setElements([container, text]);
+    h.app.scene.mutateElement(container, {
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 100,
+    });
+    // text that was ever scaled has a long fractional font size
+    h.app.scene.mutateElement(API.getElement(text) as ExcalidrawTextElement, {
+      fontSize: 16.123456789,
+    });
+    API.setSelectedElements([container]);
+    Keyboard.keyPress(KEYS.ENTER);
+    const editor = await getTextEditor();
+    // browsers round the editor's font size (jsdom doesn't)
+    let fontSize = "";
+    Object.defineProperty(editor.style, "fontSize", {
+      configurable: true,
+      get: () => fontSize,
+      set: (value: string) => {
+        fontSize = `${Number(parseFloat(value).toFixed(4))}px`;
+      },
+    });
+    editor.style.fontSize = "16.123456789px";
+
+    let typed = "dsad as ";
+    for (const char of "dasdasdasdasdasdas") {
+      typed += char;
+      fireEvent.input(editor, { target: { value: typed } });
+      const fitted = API.getElement(container);
+      expect(fitted.x + fitted.width / 2).toBeCloseTo(100);
+      expect(fitted.y + fitted.height / 2).toBeCloseTo(50);
+    }
+  });
+
   it("free text wraps once it gets too long, and unwraps when shortened", async () => {
     API.setAppState({ width: 2000, height: 1000 });
     const mouse = new Pointer("mouse");

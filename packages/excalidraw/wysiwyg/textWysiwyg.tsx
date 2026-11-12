@@ -254,7 +254,12 @@ export const textWysiwyg = ({
     ) {
       return true;
     }
-    if (`${updatedTextElement.fontSize}px` !== editable.style.fontSize) {
+    // compare as numbers: the browser rounds the style (16.123456 → "16.1235px")
+    if (
+      Math.abs(
+        updatedTextElement.fontSize - parseFloat(editable.style.fontSize),
+      ) > 0.01
+    ) {
       return true;
     }
     return false;
